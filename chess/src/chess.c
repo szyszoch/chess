@@ -1,11 +1,13 @@
 #include "chess.h"
 
 typedef struct Chess {
+	int state;
 	SDL_Renderer* renderer;
 	SDL_Window* window;
+	SDL_Event events;
 } Chess;
 
-Chess chess = {NULL,NULL};
+Chess chess = { 0,NULL,NULL,0 };
 
 void Chess_Init() {
 
@@ -50,6 +52,7 @@ void Chess_Init() {
 	}
 
 	init = true;
+	chess.state = STATE_MENU;
 
 }
 
@@ -74,5 +77,51 @@ void Chess_Destroy() {
 	Log_Quit();
 
 	quit = true;
+
+}
+
+void Chess_Render() {
+	SDL_RenderPresent(chess.renderer);
+}
+
+void Chess_HandleEvent() {
+	
+	SDL_PollEvent(&chess.events);
+	
+	if (chess.events.type == SDL_QUIT) 
+		chess.state = STATE_QUIT;
+
+	if (chess.events.key.state == SDL_PRESSED) {
+		
+		const Uint8* keys = SDL_GetKeyboardState(NULL);
+
+		if (keys[SDL_SCANCODE_ESCAPE] == true)
+			chess.state = STATE_QUIT;
+
+	}
+
+	
+}
+
+void Chess_Delay() {
+	SDL_Delay(1000 / 60);
+}
+
+int Chess_State() {
+
+	static p_state = 0;
+
+	if (p_state == chess.state)
+		return chess.state;
+
+	if (chess.state == STATE_MENU)
+		Chess_State_Menu();
+
+	p_state = chess.state;
+	return chess.state;
+
+}
+
+void Chess_State_Menu() {
 
 }

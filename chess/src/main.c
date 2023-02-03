@@ -4,9 +4,13 @@ int main(int argc, char* args[]) {
 	
 	Chess_Init();
 
-	
-	Chess_Destroy();
+	while (Chess_State()) {
+		Chess_Render();
+		Chess_HandleEvent();
+		Chess_Delay();
+	}
 
+	Chess_Destroy();
 
 	return 0;
 }
