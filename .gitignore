@@ -1,5 +1,6 @@
 # files
 chess/chess.vcxproj*
+chess/log.txt
 # directories
 bin
 .vs

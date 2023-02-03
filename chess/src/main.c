@@ -1,11 +1,12 @@
-
-#include "log.h"
+#include "chess.h"
 
 int main(int argc, char* args[]) {
-	Log_Init();
-	INFO("test");
-	WARN("test");
-	ERROR("test");
-	Log_Quit();
+	
+	Chess_Init();
+
+	
+	Chess_Destroy();
+
+
 	return 0;
 }
