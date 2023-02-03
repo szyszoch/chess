@@ -1,0 +1,6 @@
+# files
+chess/chess.vcxproj*
+# directories
+bin
+.vs
+objects
