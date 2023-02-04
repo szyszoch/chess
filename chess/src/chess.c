@@ -5,9 +5,12 @@ typedef struct Chess {
 	SDL_Renderer* renderer;
 	SDL_Window* window;
 	SDL_Event events;
+	SDL_Texture* texture[TEXTURE_COUNT];
+	Button* button[3];
+	TTF_Font* font;
 } Chess;
 
-Chess chess = { 0,NULL,NULL,0 };
+Chess chess = {0,NULL,NULL,0,NULL};
 
 void Chess_Init() {
 
@@ -18,6 +21,7 @@ void Chess_Init() {
 		return;
 	}
 
+	init = true;
 	Log_Init();
 
 	INFO("Initializing");
@@ -51,7 +55,37 @@ void Chess_Init() {
 		return;
 	}
 
-	init = true;
+	chess.font = TTF_OpenFont("silkscreen/slkscr.ttf", 32);
+
+	if (chess.font == NULL) {
+		ERROR(SDL_GetError());
+		return;
+	}
+
+	chess.texture[TEXTURE_BLACK_BISHOP] = IMG_LoadTexture(chess.renderer, "img/black_bishop.png");
+	chess.texture[TEXTURE_BLACK_KING]	= IMG_LoadTexture(chess.renderer, "img/black_king.png");
+	chess.texture[TEXTURE_BLACK_KNIGHT] = IMG_LoadTexture(chess.renderer, "img/black_knight.png");
+	chess.texture[TEXTURE_BLACK_PAWN]	= IMG_LoadTexture(chess.renderer, "img/black_pawn.png");
+	chess.texture[TEXTURE_BLACK_QUEEN]	= IMG_LoadTexture(chess.renderer, "img/black_queen.png");
+	chess.texture[TEXTURE_BLACK_ROOK]	= IMG_LoadTexture(chess.renderer, "img/black_rook.png");
+	chess.texture[TEXTURE_WHITE_BISHOP] = IMG_LoadTexture(chess.renderer, "img/white_bishop.png");
+	chess.texture[TEXTURE_WHITE_KING]	= IMG_LoadTexture(chess.renderer, "img/white_king.png");
+	chess.texture[TEXTURE_WHITE_KNIGHT] = IMG_LoadTexture(chess.renderer, "img/white_knight.png");
+	chess.texture[TEXTURE_WHITE_PAWN]	= IMG_LoadTexture(chess.renderer, "img/white_pawn.png");
+	chess.texture[TEXTURE_WHITE_QUEEN]	= IMG_LoadTexture(chess.renderer, "img/white_queen.png");
+	chess.texture[TEXTURE_WHITE_ROOK]	= IMG_LoadTexture(chess.renderer, "img/white_rook.png");
+
+	for (int i = 0; i < TEXTURE_COUNT; i++) {
+		if (chess.texture[i] == NULL) {
+			ERROR(SDL_GetError());
+			return;
+		}
+	}
+
+	chess.button[0] = Button_Init(chess.renderer,chess.font,"Test",(SDL_Rect){100,100,200,100},(SDL_Color){40,40,40,255}, (SDL_Color) { 240, 240, 240,255 });
+
+	
+
 	chess.state = STATE_MENU;
 
 }
@@ -63,7 +97,18 @@ void Chess_Destroy() {
 	if (quit == true)
 		return;
 
+	quit = true;
 	INFO("Closing");
+
+	TTF_CloseFont(chess.font);
+
+	Button_Destroy(chess.button[0]);
+
+	for (int i = 0; i < TEXTURE_COUNT; i++) {
+		if (chess.texture[i] != NULL) {
+			SDL_DestroyTexture(chess.texture[i]);
+		}
+	}
 
 	SDL_DestroyRenderer(chess.renderer);
 	SDL_DestroyWindow(chess.window);
@@ -76,11 +121,10 @@ void Chess_Destroy() {
 
 	Log_Quit();
 
-	quit = true;
-
 }
 
 void Chess_Render() {
+	Button_Render(chess.button[0]);
 	SDL_RenderPresent(chess.renderer);
 }
 
@@ -100,7 +144,8 @@ void Chess_HandleEvent() {
 
 	}
 
-	
+	Button_Event(chess.button[0], &chess.events);
+
 }
 
 void Chess_Delay() {
