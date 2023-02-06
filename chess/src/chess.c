@@ -1,15 +1,5 @@
 #include "chess.h"
 
-typedef struct Chess {
-	int state;
-	SDL_Renderer* renderer;
-	SDL_Window* window;
-	SDL_Event events;
-	SDL_Texture* texture[TEXTURE_COUNT];
-	Button* button[3];
-	TTF_Font* font;
-} Chess;
-
 Chess chess = {0,NULL,NULL,0,NULL};
 
 void Chess_Init() {
@@ -55,38 +45,12 @@ void Chess_Init() {
 		return;
 	}
 
-	chess.font = TTF_OpenFont("silkscreen/slkscr.ttf", 32);
-
-	if (chess.font == NULL) {
-		ERROR(SDL_GetError());
-		return;
-	}
-
-	chess.texture[TEXTURE_BLACK_BISHOP] = IMG_LoadTexture(chess.renderer, "img/black_bishop.png");
-	chess.texture[TEXTURE_BLACK_KING]	= IMG_LoadTexture(chess.renderer, "img/black_king.png");
-	chess.texture[TEXTURE_BLACK_KNIGHT] = IMG_LoadTexture(chess.renderer, "img/black_knight.png");
-	chess.texture[TEXTURE_BLACK_PAWN]	= IMG_LoadTexture(chess.renderer, "img/black_pawn.png");
-	chess.texture[TEXTURE_BLACK_QUEEN]	= IMG_LoadTexture(chess.renderer, "img/black_queen.png");
-	chess.texture[TEXTURE_BLACK_ROOK]	= IMG_LoadTexture(chess.renderer, "img/black_rook.png");
-	chess.texture[TEXTURE_WHITE_BISHOP] = IMG_LoadTexture(chess.renderer, "img/white_bishop.png");
-	chess.texture[TEXTURE_WHITE_KING]	= IMG_LoadTexture(chess.renderer, "img/white_king.png");
-	chess.texture[TEXTURE_WHITE_KNIGHT] = IMG_LoadTexture(chess.renderer, "img/white_knight.png");
-	chess.texture[TEXTURE_WHITE_PAWN]	= IMG_LoadTexture(chess.renderer, "img/white_pawn.png");
-	chess.texture[TEXTURE_WHITE_QUEEN]	= IMG_LoadTexture(chess.renderer, "img/white_queen.png");
-	chess.texture[TEXTURE_WHITE_ROOK]	= IMG_LoadTexture(chess.renderer, "img/white_rook.png");
-
-	for (int i = 0; i < TEXTURE_COUNT; i++) {
-		if (chess.texture[i] == NULL) {
-			ERROR(SDL_GetError());
-			return;
-		}
-	}
-
-	chess.button[0] = Button_Init(chess.renderer,chess.font,"Test",(SDL_Rect){100,100,200,100},(SDL_Color){40,40,40,255}, (SDL_Color) { 240, 240, 240,255 });
-
-	
-
 	chess.state = STATE_MENU;
+	chess.texture = NULL;
+	chess.ntexture = 0;
+	chess.button = NULL;
+	chess.nbutton = 0;
+	chess.window_flags = SDL_GetWindowFlags(chess.window);
 
 }
 
@@ -99,16 +63,6 @@ void Chess_Destroy() {
 
 	quit = true;
 	INFO("Closing");
-
-	TTF_CloseFont(chess.font);
-
-	Button_Destroy(chess.button[0]);
-
-	for (int i = 0; i < TEXTURE_COUNT; i++) {
-		if (chess.texture[i] != NULL) {
-			SDL_DestroyTexture(chess.texture[i]);
-		}
-	}
 
 	SDL_DestroyRenderer(chess.renderer);
 	SDL_DestroyWindow(chess.window);
@@ -124,14 +78,29 @@ void Chess_Destroy() {
 }
 
 void Chess_Render() {
-	Button_Render(chess.button[0]);
+
+	if (chess.window_flags & SDL_WINDOW_MINIMIZED)
+		return;
+
+	SDL_RenderClear(chess.renderer);
+
+	for (int i = 0; i < chess.ntexture; i++)
+		Texture_Render(chess.texture[i]);
+	for (int i = 0; i < chess.nbutton; i++)
+		Button_Render(chess.button[i]);
+
 	SDL_RenderPresent(chess.renderer);
+
 }
 
 void Chess_HandleEvent() {
 	
 	SDL_PollEvent(&chess.events);
 	
+	chess.window_flags = SDL_GetWindowFlags(chess.window);
+	if (chess.window_flags & SDL_WINDOW_MINIMIZED)
+		return;
+
 	if (chess.events.type == SDL_QUIT) 
 		chess.state = STATE_QUIT;
 
@@ -144,7 +113,8 @@ void Chess_HandleEvent() {
 
 	}
 
-	Button_Event(chess.button[0], &chess.events);
+	for(int i=0; i<chess.nbutton; i++) 
+		Button_Event(chess.button[i], &chess.events);
 
 }
 
@@ -159,6 +129,8 @@ int Chess_State() {
 	if (p_state == chess.state)
 		return chess.state;
 
+	Chess_StateClean();
+
 	if (chess.state == STATE_MENU)
 		Chess_State_Menu();
 
@@ -169,4 +141,114 @@ int Chess_State() {
 
 void Chess_State_Menu() {
 
+	chess.ntexture = 1;
+	chess.texture = malloc(sizeof(Button*) * chess.ntexture);
+
+	chess.nbutton = 4;
+	chess.button = malloc(sizeof(Button*) * chess.nbutton);
+
+	if (chess.texture == NULL) {
+		ERROR("Can't allocate memory");
+		Chess_StateClean();
+		chess.state = STATE_QUIT;
+		return;
+	}
+
+	if (chess.button == NULL) {
+		ERROR("Can't allocate memory");
+		Chess_StateClean();
+		chess.state = STATE_QUIT;
+		return;
+	}
+
+	SDL_Rect tp1 = { 0,0,800,800 }; // texture position
+
+	chess.texture[0] = Texture_Init(chess.renderer, "img/board.png", tp1);
+
+	SDL_Rect bp1 = { WINDOW_WIDTH / 2 - 420 / 2,150,420,50 }; 
+	SDL_Rect bp2 = { WINDOW_WIDTH / 2 - 420 / 2,225,420,50 }; // button position
+	SDL_Rect bp3 = { WINDOW_WIDTH / 2 - 420 / 2,300,420,50 };
+	SDL_Rect bp4 = { WINDOW_WIDTH / 2 - 420 / 2,375,420,50 };
+	
+	SDL_Color bc = {40,40,40,255}; // button color
+	SDL_Color btc = { 240,240,240,255}; // button text color
+
+	int bts = 32; // button text size
+
+	chess.button[0] = Button_Init(chess.renderer, "silkscreen/slkscr.ttf", bts, "Local Game", bp1, bc, btc);
+	chess.button[1] = Button_Init(chess.renderer, "silkscreen/slkscr.ttf", bts, "Join Game", bp2, bc, btc);
+	chess.button[2] = Button_Init(chess.renderer, "silkscreen/slkscr.ttf", bts, "Create Game", bp3, bc, btc);
+	chess.button[3] = Button_Init(chess.renderer, "silkscreen/slkscr.ttf", bts, "Exit", bp4, bc, btc);
+
+	Button_SetEvent(chess.button[0], Chess_Event_GoToLocalGame);
+	Button_SetEvent(chess.button[1], Chess_Event_GoToJoinGame);
+	Button_SetEvent(chess.button[2], Chess_Event_GoToCreateGame);
+	Button_SetEvent(chess.button[3], Chess_Event_Exit);
+
+	for (int i = 0; i < chess.ntexture; i++) {
+		if (chess.texture[i] == NULL) {
+			Chess_StateClean();
+			chess.state = STATE_QUIT;
+			return;
+		}
+	}
+
+	for (int i = 0; i < chess.nbutton; i++) {
+		if (chess.button[i] == NULL) {
+			Chess_StateClean();
+			chess.state = STATE_QUIT;
+			return;
+		}
+	}
+
+}
+
+void Chess_StateClean() {
+
+	if (chess.texture != NULL) {
+
+		for (int i = 0; i < chess.ntexture; i++) {
+			if (chess.texture[i] != NULL) {
+				Texture_Destroy(chess.texture[i]);
+			}
+		}
+
+		chess.ntexture = 0;
+		free(chess.texture);
+
+	}
+
+	if (chess.button != NULL) {
+
+		for (int i = 0; i < chess.nbutton; i++) {
+			if (chess.button[i] != NULL) {
+				Button_Destroy(chess.button[i]);
+			}
+		}
+
+		chess.nbutton = 0;
+		free(chess.button);
+
+	}
+
+}
+
+void Chess_Event_Exit() {
+	chess.state = STATE_QUIT;
+}
+
+void Chess_Event_GoToMenu() {
+	chess.state = STATE_MENU;
+}
+
+void Chess_Event_GoToLocalGame() {
+	chess.state = STATE_LOCALGAME;
+}
+
+void Chess_Event_GoToJoinGame() {
+	chess.state = STATE_JOINGAME;
+}
+
+void Chess_Event_GoToCreateGame() {
+	chess.state = STATE_CREATEGAME;
 }

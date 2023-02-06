@@ -8,7 +8,7 @@ typedef struct Button {
 	int type;
 } Button;
 
-Button* Button_Init(SDL_Renderer* renderer, TTF_Font* font, const char* title, SDL_Rect position, SDL_Color background_color, SDL_Color text_color) {
+Button* Button_Init(SDL_Renderer* renderer, const char* font_path, int font_size, const char* title, SDL_Rect position, SDL_Color background_color, SDL_Color text_color) {
 	
 	Button* button = malloc(sizeof(Button));
 	
@@ -17,7 +17,17 @@ Button* Button_Init(SDL_Renderer* renderer, TTF_Font* font, const char* title, S
 		return NULL;
 	}
 
+	TTF_Font* font = TTF_OpenFont(font_path, font_size);
+
+	if (font == NULL) {
+		free(button);
+		ERROR(SDL_GetError());
+		return NULL;
+	}
+
 	SDL_Surface* text = TTF_RenderText_Solid(font, title, text_color);
+
+	TTF_CloseFont(font);
 
 	if (text == NULL) {
 		ERROR(SDL_GetError());
@@ -102,7 +112,9 @@ void Button_Event(Button* button, SDL_Event* events) {
 		SDL_GetMouseState(&x, &y);
 		SDL_Rect point = { x,y,1,1 };
 		if (SDL_HasIntersection(&button->position,&point)) {
-			button->type = BUTTON_HOVER;
+			if (button->type == BUTTON_NORMAL) {
+				button->type = BUTTON_HOVER;
+			}
 		}
 		else {
 			button->type = BUTTON_NORMAL;

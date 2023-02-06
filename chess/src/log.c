@@ -5,42 +5,42 @@ typedef struct Log {
 	const char* file_name;
 } Log;
 
-Log log;
+Log logger;
 
 void Log_Init() {
-	log.file_name = "log.txt";
-	log.file = fopen(log.file_name, "w");
+	logger.file_name = "log.txt";
+	logger.file = fopen(logger.file_name, "w");
 }
 
 void Log_Quit() {
-	fclose(log.file);
+	fclose(logger.file);
 }
 
 void Log_Info(const char* message) {
 	// console
 	printf("[%s][\033[38;2;0;255;0mINFO\033[39m]: %s\n", Log_GetTime(),message);
 	// file
-	fprintf(log.file, "[INFO]: ");
-	fprintf(log.file, message);
-	fprintf(log.file, "\n");
+	fprintf(logger.file, "[INFO]: ");
+	fprintf(logger.file, message);
+	fprintf(logger.file, "\n");
 }
 
 void Log_Warn(const char* message) {
 	// console
 	printf("[%s][\033[38;2;255;255;0mWARNING\033[39m]: %s\n", Log_GetTime(), message);
 	// file
-	fprintf(log.file, "[WARN]: ");
-	fprintf(log.file, message);
-	fprintf(log.file, "\n");
+	fprintf(logger.file, "[WARN]: ");
+	fprintf(logger.file, message);
+	fprintf(logger.file, "\n");
 }
 
 void Log_Error(const char* message) {
 	// console
 	printf("[%s][\033[38;2;255;0;0mERROR\033[39m]: %s\n", Log_GetTime(), message);
 	// file
-	fprintf(log.file, "[ERROR]: ");
-	fprintf(log.file, message);
-	fprintf(log.file, "\n");
+	fprintf(logger.file, "[ERROR]: ");
+	fprintf(logger.file, message);
+	fprintf(logger.file, "\n");
 }
 
 char* Log_GetTime() {
