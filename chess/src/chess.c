@@ -1,6 +1,6 @@
 #include "chess.h"
 
-Chess chess = {0,NULL,NULL,0,NULL};
+Chess chess;
 
 void Chess_Init() {
 
@@ -50,6 +50,8 @@ void Chess_Init() {
 	chess.ntexture = 0;
 	chess.button = NULL;
 	chess.nbutton = 0;
+	chess.board = NULL;
+	chess.nboard = 0;
 	chess.window_flags = SDL_GetWindowFlags(chess.window);
 
 }
@@ -84,6 +86,8 @@ void Chess_Render() {
 
 	SDL_RenderClear(chess.renderer);
 
+	for (int i = 0; i < chess.nboard; i++)
+		Board_Render(chess.board[i]);
 	for (int i = 0; i < chess.ntexture; i++)
 		Texture_Render(chess.texture[i]);
 	for (int i = 0; i < chess.nbutton; i++)
@@ -113,6 +117,8 @@ void Chess_HandleEvent() {
 
 	}
 
+	for (int i = 0; i < chess.nboard; i++)
+		Board_Event(chess.board[i], &chess.events);
 	for(int i=0; i<chess.nbutton; i++) 
 		Button_Event(chess.button[i], &chess.events);
 
@@ -133,6 +139,8 @@ int Chess_State() {
 
 	if (chess.state == STATE_MENU)
 		Chess_State_Menu();
+	if (chess.state == STATE_LOCALGAME)
+		Chess_State_LocalGame();
 
 	p_state = chess.state;
 	return chess.state;
@@ -180,10 +188,64 @@ void Chess_State_Menu() {
 	chess.button[2] = Button_Init(chess.renderer, "silkscreen/slkscr.ttf", bts, "Create Game", bp3, bc, btc);
 	chess.button[3] = Button_Init(chess.renderer, "silkscreen/slkscr.ttf", bts, "Exit", bp4, bc, btc);
 
+	for (int i = 0; i < chess.ntexture; i++) {
+		if (chess.texture[i] == NULL) {
+			Chess_StateClean();
+			chess.state = STATE_QUIT;
+			return;
+		}
+	}
+
+	for (int i = 0; i < chess.nbutton; i++) {
+		if (chess.button[i] == NULL) {
+			Chess_StateClean();
+			chess.state = STATE_QUIT;
+			return;
+		}
+	}
+
 	Button_SetEvent(chess.button[0], Chess_Event_GoToLocalGame);
 	Button_SetEvent(chess.button[1], Chess_Event_GoToJoinGame);
 	Button_SetEvent(chess.button[2], Chess_Event_GoToCreateGame);
 	Button_SetEvent(chess.button[3], Chess_Event_Exit);
+
+}
+
+void Chess_State_LocalGame() {
+
+	chess.ntexture = 0;
+	chess.texture = malloc(sizeof(Button*) * chess.ntexture);
+
+	chess.nbutton = 0;
+	chess.button = malloc(sizeof(Button*) * chess.nbutton);
+
+	chess.nboard = 1;
+	chess.board = malloc(sizeof(Board*) * chess.nboard);
+
+	if (chess.texture == NULL) {
+		ERROR("Can't allocate memory");
+		Chess_StateClean();
+		chess.state = STATE_QUIT;
+		return;
+	}
+
+	if (chess.button == NULL) {
+		ERROR("Can't allocate memory");
+		Chess_StateClean();
+		chess.state = STATE_QUIT;
+		return;
+	}
+
+	if (chess.board == NULL) {
+		ERROR("Can't allocate memory");
+		Chess_StateClean();
+		chess.state = STATE_QUIT;
+		return;
+	}
+
+	SDL_Rect board_pos = { 0,0,WINDOW_HEIGHT,WINDOW_HEIGHT };
+
+	chess.board[0] = Board_Init(chess.renderer,board_pos);
 
 	for (int i = 0; i < chess.ntexture; i++) {
 		if (chess.texture[i] == NULL) {
@@ -195,6 +257,14 @@ void Chess_State_Menu() {
 
 	for (int i = 0; i < chess.nbutton; i++) {
 		if (chess.button[i] == NULL) {
+			Chess_StateClean();
+			chess.state = STATE_QUIT;
+			return;
+		}
+	}
+
+	for (int i = 0; i < chess.nboard; i++) {
+		if (chess.board[i] == NULL) {
 			Chess_StateClean();
 			chess.state = STATE_QUIT;
 			return;
@@ -228,6 +298,19 @@ void Chess_StateClean() {
 
 		chess.nbutton = 0;
 		free(chess.button);
+
+	}
+
+	if (chess.board != NULL) {
+
+		for (int i = 0; i < chess.nboard; i++) {
+			if (chess.board[i] != NULL) {
+				Board_Destroy(chess.board[i]);
+			}
+		}
+
+		chess.nboard = 0;
+		free(chess.board);
 
 	}
 

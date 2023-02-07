@@ -6,6 +6,7 @@
 #include "log.h"
 #include "button.h"
 #include "texture.h"
+#include "board.h"
 
 #define WINDOW_TITLE "Chess"
 #define WINDOW_WIDTH 800
@@ -29,6 +30,8 @@ typedef struct Chess {
 	int ntexture;
 	Button** button;
 	int nbutton;
+	Board** board;
+	int nboard;
 
 	int* chess_tex_index; // Index to textures of chess
 
@@ -44,6 +47,7 @@ int Chess_State();
 void Chess_StateClean();
 
 void Chess_State_Menu();
+void Chess_State_LocalGame();
 
 void Chess_Event_Exit();
 void Chess_Event_GoToMenu();

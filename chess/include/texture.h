@@ -9,3 +9,4 @@ typedef struct Texture Texture;
 Texture* Texture_Init(SDL_Renderer* renderer, const char* path, SDL_Rect position);
 void Texture_Destroy(Texture* texture);
 void Texture_Render(Texture* texture);
+void Texture_ChangePosition(Texture* texture, int x, int y);
