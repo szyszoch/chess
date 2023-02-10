@@ -1,56 +1,54 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_image.h>
-#include <SDL_ttf.h>
 #include <stdbool.h>
-#include "log.h"
-#include "button.h"
 #include "texture.h"
-#include "board.h"
+#include "math.h"
 
-#define WINDOW_TITLE "Chess"
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+typedef enum ChessTeam {
+	TEAM_NONE = -1,
+	TEAM_WHITE,
+	TEAM_BLACK,
+	TEAMS_COUNT
+} ChessTeam;
 
-#define STATE_QUIT 0
-#define STATE_MENU 1
-#define STATE_LOCALGAME 2
-#define STATE_JOINGAME 3
-#define STATE_CREATEGAME 4
-
-typedef struct Chess {
-
-	int state;
-	SDL_Renderer* renderer;
-	SDL_Window* window;
-	SDL_Event events;
-	Uint32 window_flags;
-
-	Texture** texture;
-	int ntexture;
-	Button** button;
-	int nbutton;
-	Board** board;
-	int nboard;
-
-	int* chess_tex_index; // Index to textures of chess
+typedef enum ChessType {
+	CHESS_NONE = -1,
+	CHESS_BISHOP,
+	CHESS_KING,
+	CHESS_KNIGHT,
+	CHESS_PAWN,
+	CHESS_QUEEN,
+	CHESS_ROOK,
+	CHESSES_COUNT
+}  ChessType;
 
 
-} Chess;
+typedef struct Chess Chess;
+typedef struct Board Board;
+typedef struct Piece Piece;
+typedef bool (*ptr_to_pattern)(Board*,int,int,int,int);
+typedef bool bool88[8][8];
 
-void Chess_Init();
-void Chess_Destroy();
-void Chess_Render();
-void Chess_HandleEvent();
-void Chess_Delay();
-int Chess_State();
-void Chess_StateClean();
+void Board_Render(Chess* chess);
+void Board_Event(Chess* chess, SDL_Event* events);
+Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position);
+void Board_Destroy(Chess* chess);
 
-void Chess_State_Menu();
-void Chess_State_LocalGame();
+void Board_Restart(Board* board);
+void Board_Move(Chess* chess, int src_x, int src_y, int dst_x, int dst_y);
+inline void Board_ChangeTurn(Chess* chess);
+bool Board_CanMove(Chess* chess, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_IsKingInDanger(Chess* chess, ChessTeam team);
+void Board_UpdateKingDangerZone(Chess* chess);
+bool Board_IsGameOver(Chess* chess);
+void Board_GetKingDangerZone(Chess* chess, ChessTeam team, bool88 king_danger_zone);
 
-void Chess_Event_Exit();
-void Chess_Event_GoToMenu();
-void Chess_Event_GoToLocalGame();
-void Chess_Event_GoToJoinGame();
-void Chess_Event_GoToCreateGame();
+bool Board_Pattern_Bishop(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_Pattern_King(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_Pattern_Knight(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_Pattern_Pawn(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_Pattern_Pawn_Move(	Board* board, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_Pattern_Pawn_Capture(Board* board, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_Pattern_Queen(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
+bool Board_Pattern_Rook(		Board* board,  int src_x, int src_y, int dst_x, int dst_y);

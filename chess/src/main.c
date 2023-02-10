@@ -1,16 +1,16 @@
-#include "chess.h"
+#include "app.h"
 
 int main(int argc, char* args[]) {
 	
-	Chess_Init();
+	App_Init();
 
-	while (Chess_State()) {
-		Chess_Render();
-		Chess_HandleEvent();
-		Chess_Delay();
+	while (App_State()) {
+		App_Render();
+		App_HandleEvent();
+		App_Delay();
 	}
 
-	Chess_Destroy();
+	App_Destroy();
 
 	return 0;
 }
