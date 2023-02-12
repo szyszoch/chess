@@ -15,9 +15,9 @@ extern char* Log_GetTime();
 
 #ifdef DEBUG_MODE 
 
-#define INFO(x)  Log_Info(x)
-#define WARN(x)  Log_Warn(x)
-#define ERROR(x) Log_Error(x)
+#define LOG_INFO(x)  Log_Info(x)
+#define LOG_WARN(x)  Log_Warn(x)
+#define LOG_ERROR(x) Log_Error(x)
 
 #else
 

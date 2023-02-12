@@ -13,7 +13,7 @@ Button* Button_Init(SDL_Renderer* renderer, const char* font_path, int font_size
 	Button* button = malloc(sizeof(Button));
 	
 	if (button == NULL) {
-		ERROR("Can't allocate memory");
+		LOG_ERROR("Can't allocate memory");
 		return NULL;
 	}
 
@@ -21,7 +21,7 @@ Button* Button_Init(SDL_Renderer* renderer, const char* font_path, int font_size
 
 	if (font == NULL) {
 		free(button);
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		return NULL;
 	}
 
@@ -30,7 +30,7 @@ Button* Button_Init(SDL_Renderer* renderer, const char* font_path, int font_size
 	TTF_CloseFont(font);
 
 	if (text == NULL) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		free(button);
 		return NULL;
 	}
@@ -38,7 +38,7 @@ Button* Button_Init(SDL_Renderer* renderer, const char* font_path, int font_size
 	SDL_Surface* normal_sprite = SDL_CreateRGBSurface(0, position.w, position.h, 32, 0xFF000000,0x00FF0000, 0x0000FF00, 0x000000FF);
 
 	if (normal_sprite == NULL) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		SDL_FreeSurface(text);
 		free(button);
 		return NULL;
@@ -47,7 +47,7 @@ Button* Button_Init(SDL_Renderer* renderer, const char* font_path, int font_size
 	SDL_Surface* hover_sprite = SDL_CreateRGBSurface(0, position.w, position.h, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
 
 	if (hover_sprite == NULL) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		SDL_FreeSurface(text);
 		SDL_FreeSurface(normal_sprite);
 		free(button);
@@ -73,7 +73,7 @@ Button* Button_Init(SDL_Renderer* renderer, const char* font_path, int font_size
 	SDL_FreeSurface(text);
 
 	if (button->sprite[BUTTON_NORMAL] == NULL || button->sprite[BUTTON_HOVER] == NULL) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		SDL_DestroyTexture(button->sprite[BUTTON_NORMAL]);
 		SDL_DestroyTexture(button->sprite[BUTTON_HOVER]);
 		free(button);

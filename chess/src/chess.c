@@ -13,13 +13,12 @@ typedef struct Chess {
 	Board board;
 	Texture* sprite[TEAMS_COUNT][CHESSES_COUNT];
 	Texture* select_sprite;
-	Texture* chess;
+	Texture* board_sprite;
 	SDL_Rect position;
 	int select_x, select_y;
 	int turn;
 	int winner;
 	bool gameover;
-	bool king_in_danger;
 } Chess;
 
 Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position) {
@@ -27,7 +26,7 @@ Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position) {
 	Chess* chess = malloc(sizeof(Chess));
 
 	if (chess == NULL) {
-		ERROR("Can't allocate memory");
+		LOG_ERROR("Can't allocate memory");
 		return NULL;
 	}
 
@@ -35,47 +34,46 @@ Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position) {
 
 	SDL_Rect chess_pos = { 0,0,position.w / 8,position.h / 8 };
 
-	chess->sprite[TEAM_BLACK][CHESS_BISHOP] = Texture_Init(renderer, "img/black_bishop.png",	chess_pos);
-	chess->sprite[TEAM_BLACK][CHESS_KING]	= Texture_Init(renderer, "img/black_king.png",		chess_pos);
-	chess->sprite[TEAM_BLACK][CHESS_KNIGHT] = Texture_Init(renderer, "img/black_knight.png",	chess_pos);
-	chess->sprite[TEAM_BLACK][CHESS_PAWN]	= Texture_Init(renderer, "img/black_pawn.png",		chess_pos);
-	chess->sprite[TEAM_BLACK][CHESS_QUEEN]	= Texture_Init(renderer, "img/black_queen.png",		chess_pos);
-	chess->sprite[TEAM_BLACK][CHESS_ROOK]	= Texture_Init(renderer, "img/black_rook.png",		chess_pos);
-	chess->sprite[TEAM_WHITE][CHESS_BISHOP] = Texture_Init(renderer, "img/white_bishop.png",	chess_pos);
-	chess->sprite[TEAM_WHITE][CHESS_KING]	= Texture_Init(renderer, "img/white_king.png",		chess_pos);
-	chess->sprite[TEAM_WHITE][CHESS_KNIGHT] = Texture_Init(renderer, "img/white_knight.png",	chess_pos);
-	chess->sprite[TEAM_WHITE][CHESS_PAWN]	= Texture_Init(renderer, "img/white_pawn.png",		chess_pos);
-	chess->sprite[TEAM_WHITE][CHESS_QUEEN]	= Texture_Init(renderer, "img/white_queen.png",		chess_pos);
-	chess->sprite[TEAM_WHITE][CHESS_ROOK]	= Texture_Init(renderer, "img/white_rook.png",		chess_pos);
+	chess->sprite[TEAM_BLACK][CHESS_BISHOP] = Texture_LoadFrom(renderer, "img/black_bishop.png",	chess_pos);
+	chess->sprite[TEAM_BLACK][CHESS_KING]	= Texture_LoadFrom(renderer, "img/black_king.png",		chess_pos);
+	chess->sprite[TEAM_BLACK][CHESS_KNIGHT] = Texture_LoadFrom(renderer, "img/black_knight.png",	chess_pos);
+	chess->sprite[TEAM_BLACK][CHESS_PAWN]	= Texture_LoadFrom(renderer, "img/black_pawn.png",		chess_pos);
+	chess->sprite[TEAM_BLACK][CHESS_QUEEN]	= Texture_LoadFrom(renderer, "img/black_queen.png",		chess_pos);
+	chess->sprite[TEAM_BLACK][CHESS_ROOK]	= Texture_LoadFrom(renderer, "img/black_rook.png",		chess_pos);
+	chess->sprite[TEAM_WHITE][CHESS_BISHOP] = Texture_LoadFrom(renderer, "img/white_bishop.png",	chess_pos);
+	chess->sprite[TEAM_WHITE][CHESS_KING]	= Texture_LoadFrom(renderer, "img/white_king.png",		chess_pos);
+	chess->sprite[TEAM_WHITE][CHESS_KNIGHT] = Texture_LoadFrom(renderer, "img/white_knight.png",	chess_pos);
+	chess->sprite[TEAM_WHITE][CHESS_PAWN]	= Texture_LoadFrom(renderer, "img/white_pawn.png",		chess_pos);
+	chess->sprite[TEAM_WHITE][CHESS_QUEEN]	= Texture_LoadFrom(renderer, "img/white_queen.png",		chess_pos);
+	chess->sprite[TEAM_WHITE][CHESS_ROOK]	= Texture_LoadFrom(renderer, "img/white_rook.png",		chess_pos);
 
-	chess->chess = Texture_Init(renderer, "img/board.png", position);
-	chess->select_sprite = Texture_Init(renderer, "img/select.png", chess_pos);
+	chess->board_sprite = Texture_LoadFrom(renderer, "img/board.png", position);
+	chess->select_sprite = Texture_LoadFrom(renderer, "img/select.png", chess_pos);
 
 	for (int i = 0; i < TEAMS_COUNT; i++) {
 		for (int j = 0; j < CHESSES_COUNT; j++) {
 			if (chess->sprite[i][j] == NULL) {
-				ERROR(SDL_GetError());
+				LOG_ERROR(SDL_GetError());
 				Board_Destroy(chess);
 				return NULL;
 			}
 		}
 	}
 
-	if (chess->chess == NULL) {
-		ERROR(SDL_GetError());
+	if (chess->board_sprite == NULL) {
+		LOG_ERROR(SDL_GetError());
 		Board_Destroy(chess);
 		return NULL;
 	}
 
 	if (chess->select_sprite == NULL) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		Board_Destroy(chess);
 		return NULL;
 	}
 
 	Board_Restart(&chess->board);
 	chess->gameover = false;
-	chess->king_in_danger = false;
 	chess->turn = TEAM_WHITE;
 	chess->winner = TEAM_NONE;
 	chess->select_x = -1;
@@ -95,8 +93,8 @@ void Board_Destroy(Chess* chess) {
 		}
 	}
 
-	if (chess->chess != NULL) {
-		Texture_Destroy(chess->chess);
+	if (chess->board_sprite != NULL) {
+		Texture_Destroy(chess->board_sprite);
 	}
 
 	if (chess->select_sprite != NULL) {
@@ -110,7 +108,7 @@ void Board_Destroy(Chess* chess) {
 
 void Board_Render(Chess* chess) {
 
-	Texture_Render(chess->chess);
+	Texture_Render(chess->board_sprite);
 
 	for (int y = 0; y < 8; y++) {
 		
@@ -152,9 +150,8 @@ void Board_Event(Chess* chess, SDL_Event* events) {
 
 	if (events->button.button == SDL_BUTTON_LEFT && events->type == SDL_MOUSEBUTTONDOWN) {
 
-		if (HOVER == false) {
+		if (HOVER == false)
 			return;
-		}
 		if (chess->gameover == true)
 			return;
 
@@ -163,7 +160,6 @@ void Board_Event(Chess* chess, SDL_Event* events) {
 		SDL_GetMouseState(&x, &y);
 		x = x / (chess->position.w / 8) - chess->position.x;
 		y = y / (chess->position.h / 8) - chess->position.y;
-
 
 		if (chess->select_x == -1 || chess->select_y == -1) { // Selecting piece
 
@@ -188,73 +184,70 @@ void Board_Event(Chess* chess, SDL_Event* events) {
 			return;
 		}
 
-		if (Board_CanMove(&chess->board, chess->select_x, chess->select_y, x, y) == true) {  // Moving
-
-			if (chess->board.piece[chess->select_x][chess->select_y].type == CHESS_KING) {
-
-				bool88 king_danger_zone;
-				Board_GetKingDangerZone(&chess->board, chess->board.piece[chess->select_x][chess->select_y].team, king_danger_zone);
-
-				if (king_danger_zone[x][y] == true) {
-					// Display message king can't move here
-					return;
-				}
-
-			}
-
-			else if (Board_IsKingInDanger(&chess->board, chess->turn) == true) {
-				
-				if (Board_GameOver_CanProtectKing(&chess->board, chess->select_x, chess->select_y, x, y, chess->turn) == false) {
-					// King need to move
-					return;
-				}
-				
-			}
-
-			Board_Move(&chess->board, chess->select_x, chess->select_y, x, y);
-			Board_ChangeTurn(chess);
-			chess->king_in_danger = false;
-			if (Board_GameOver(chess)) {
-				chess->gameover = true;
-				chess->winner = (chess->turn == TEAM_WHITE) ? TEAM_BLACK : TEAM_WHITE;
-			}
-
-			chess->select_x = -1;
-			chess->select_y = -1;
-
+		if (Board_CanMove(&chess->board, chess->select_x, chess->select_y, x, y) == false) {  // Moving
 			return;
 		}
-	}
 
-}
+		if (chess->board.piece[chess->select_x][chess->select_y].type == CHESS_KING) {
 
-bool Board_GameOver(Chess* chess) {
+			bool88 king_danger_zone;
+			Board_GetKingDangerZone(&chess->board, chess->board.piece[chess->select_x][chess->select_y].team, king_danger_zone);
 
-	if ( !(Board_KingCannotMove(&chess->board, chess->turn) == true && Board_IsKingInDanger(&chess->board, chess->turn) == true) ) {
-		return false;
-	}
-
-	for (int x = 0; x < 8; x++) {
-		for (int y = 0; y < 8; y++) {
-			
-			if (chess->board.piece[x][y].team != chess->turn) {
-				continue;
-			}
-
-			for (int px = 0; px < 8; px++) {
-				for (int py = 0; py < 8; py++) {
-					if (Board_GameOver_CanProtectKing(&chess->board, x, y, px, py, chess->turn)) {
-						chess->king_in_danger = true;
-						return false;
-					}
-				}
+			if (king_danger_zone[x][y] == true) {
+				//  king can't move here
+				return;
 			}
 
 		}
+
+		else if (Board_IsKingInDanger(&chess->board, chess->turn) == true) {
+
+			if (Board_CanProtectKing(&chess->board, chess->select_x, chess->select_y, x, y, chess->turn) == false) {
+				// King need to move
+				return;
+			}
+
+		}
+
+		Board_Move(&chess->board, chess->select_x, chess->select_y, x, y);
+		chess->turn = (chess->turn == TEAM_WHITE) ? TEAM_BLACK : TEAM_WHITE;
+		chess->select_x = -1;
+		chess->select_y = -1;
+
+		{ // Check if GameOver
+			if (!(Board_KingCannotMove(&chess->board, chess->turn) == true && Board_IsKingInDanger(&chess->board, chess->turn) == true)) {
+				return;
+			}
+
+			for (int x = 0; x < 8; x++) {
+				for (int y = 0; y < 8; y++) {
+
+					if (chess->board.piece[x][y].team != chess->turn) {
+						continue;
+					}
+
+					for (int px = 0; px < 8; px++) {
+						for (int py = 0; py < 8; py++) {
+							if (Board_CanProtectKing(&chess->board, x, y, px, py, chess->turn)) {
+								return;
+							}
+						}
+					}
+
+				}
+			}
+			chess->gameover = true;
+		}
+
+		return;
 	}
-	return true;
 }
 
+int Board_GetTurn(Chess* chess) {
+	return chess->turn;
+}
+
+// Board Handling
 bool Board_KingCannotMove(Board* board, ChessTeam team) {
 
 	int king_pos_x = 0;
@@ -303,7 +296,7 @@ bool Board_KingCannotMove(Board* board, ChessTeam team) {
 
 }
 
-bool Board_GameOver_CanProtectKing(Board* board, int src_x, int src_y, int dst_x, int dst_y, ChessTeam team) {
+bool Board_CanProtectKing(Board* board, int src_x, int src_y, int dst_x, int dst_y, ChessTeam team) {
 
 	if (board->piece[src_x][src_y].team != team) {
 		return false;
@@ -418,10 +411,6 @@ void Board_Move(Board* board, int src_x, int src_y, int dst_x, int dst_y) {
 
 }
 
-inline void Board_ChangeTurn(Chess* chess) {
-	chess->turn = (chess->turn == TEAM_WHITE) ? TEAM_BLACK : TEAM_WHITE;
-}
-
 bool Board_CanMove(Board* board, int src_x, int src_y, int dst_x, int dst_y) {
 
 	if (src_x < 0 || src_x > 7 || src_y < 0 || src_y > 7)
@@ -438,6 +427,78 @@ bool Board_CanMove(Board* board, int src_x, int src_y, int dst_x, int dst_y) {
 
 }
 
+bool Board_IsKingInDanger(Board* board, ChessTeam team) {
+
+	int king_pos_x=-1, king_pos_y=-1;
+
+	for (int x = 0; x < 8; x++) {
+		for (int y = 0; y < 8; y++) {
+			if (board->piece[x][y].team == team) {
+				if (board->piece[x][y].type == CHESS_KING) {
+					king_pos_x = x; king_pos_y = y;
+					break;
+				}
+			}
+		}
+	}
+
+	bool88 king_danger_zone;
+	Board_GetKingDangerZone(board, team, king_danger_zone);
+
+	return king_danger_zone[king_pos_x][king_pos_y];
+
+}
+
+void Board_GetKingDangerZone(Board* board, ChessTeam team, bool88 king_danger_zone) {
+
+	for (int x = 0; x < 8; x++) {
+		for (int y = 0; y < 8; y++) {
+			king_danger_zone[x][y] = false;
+		}
+	}
+
+	for (int x = 0; x < 8; x++) {
+		for (int y = 0; y < 8; y++) {
+			if (board->piece[x][y].team > TEAM_NONE && board->piece[x][y].team != team) {
+
+				for (int px = 0; px < 8; px++) {
+					for (int py = 0; py < 8; py++) {
+
+						if (x == px && y == py) {
+							continue;
+						}
+
+						if (board->piece[x][y].type == CHESS_PAWN) {
+							if (Board_Pattern_Pawn_Capture(board, x, y, px, py) == true) {
+								king_danger_zone[px][py] = true;
+							}
+						}
+							
+						else if (Board_Pattern(board, x, y, px, py) == true) {
+							king_danger_zone[px][py] = true;
+						}
+
+					}
+				}
+
+			}
+		}
+	}
+	
+}
+
+void Board_Copy(Board* src, Board* dst) {
+
+	for (int x = 0; x < 8; x++) {
+		for (int y = 0; y < 8; y++) {
+			dst->piece[x][y].team = src->piece[x][y].team;
+			dst->piece[x][y].type = src->piece[x][y].type;
+		}
+	}
+
+}
+
+// Chess Patterns
 bool Board_Pattern(Board* board, int src_x, int src_y, int dst_x, int dst_y) {
 
 	switch (board->piece[src_x][src_y].type) {
@@ -453,7 +514,7 @@ bool Board_Pattern(Board* board, int src_x, int src_y, int dst_x, int dst_y) {
 	}
 	case CHESS_QUEEN:	{return Board_Pattern_Queen(board, src_x, src_y, dst_x, dst_y); break; }
 	case CHESS_ROOK:	{return Board_Pattern_King(board, src_x, src_y, dst_x, dst_y); break; }
-	default: {ERROR("Uknown Chess Pattern"); return false; }
+	default: {LOG_ERROR("Uknown Chess Pattern"); return false; }
 	}
 	
 }
@@ -498,7 +559,7 @@ bool Board_Pattern_Bishop(Board* board, int src_x, int src_y, int dst_x, int dst
 		}
 
 		else {
-			ERROR("Wrong values");
+			LOG_ERROR("Wrong values");
 			return false;
 		}
 
@@ -654,7 +715,7 @@ bool Board_Pattern_Rook(Board* board, int src_x, int src_y, int dst_x, int dst_y
 		}
 
 		else {
-			ERROR("Wrong values");
+			LOG_ERROR("Wrong values");
 			return false;
 		}
 
@@ -663,75 +724,3 @@ bool Board_Pattern_Rook(Board* board, int src_x, int src_y, int dst_x, int dst_y
 
 	return false;
 }
-
-bool Board_IsKingInDanger(Board* board, ChessTeam team) {
-
-	int king_pos_x=-1, king_pos_y=-1;
-
-	for (int x = 0; x < 8; x++) {
-		for (int y = 0; y < 8; y++) {
-			if (board->piece[x][y].team == team) {
-				if (board->piece[x][y].type == CHESS_KING) {
-					king_pos_x = x; king_pos_y = y;
-					break;
-				}
-			}
-		}
-	}
-
-	bool88 king_danger_zone;
-	Board_GetKingDangerZone(board, team, king_danger_zone);
-
-	return king_danger_zone[king_pos_x][king_pos_y];
-
-}
-
-void Board_GetKingDangerZone(Board* board, ChessTeam team, bool88 king_danger_zone) {
-
-	for (int x = 0; x < 8; x++) {
-		for (int y = 0; y < 8; y++) {
-			king_danger_zone[x][y] = false;
-		}
-	}
-
-	for (int x = 0; x < 8; x++) {
-		for (int y = 0; y < 8; y++) {
-			if (board->piece[x][y].team > TEAM_NONE && board->piece[x][y].team != team) {
-
-				for (int px = 0; px < 8; px++) {
-					for (int py = 0; py < 8; py++) {
-
-						if (x == px && y == py) {
-							continue;
-						}
-
-						if (board->piece[x][y].type == CHESS_PAWN) {
-							if (Board_Pattern_Pawn_Capture(board, x, y, px, py) == true) {
-								king_danger_zone[px][py] = true;
-							}
-						}
-							
-						else if (Board_Pattern(board, x, y, px, py) == true) {
-							king_danger_zone[px][py] = true;
-						}
-
-					}
-				}
-
-			}
-		}
-	}
-	
-}
-
-void Board_Copy(Board* src, Board* dst) {
-
-	for (int x = 0; x < 8; x++) {
-		for (int y = 0; y < 8; y++) {
-			dst->piece[x][y].team = src->piece[x][y].team;
-			dst->piece[x][y].type = src->piece[x][y].type;
-		}
-	}
-
-}
-

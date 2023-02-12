@@ -7,41 +7,41 @@ void App_Init() {
 	static bool init = false;
 
 	if (init == true) {
-		WARN("Trying to initialize program again");
+		LOG_WARN("Trying to initialize program again");
 		return;
 	}
 
 	init = true;
 	Log_Init();
 
-	INFO("Initializing");
+	LOG_INFO("Initializing");
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		return;
 	}
 
 	if (IMG_Init(IMG_INIT_PNG) == 0) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		return;
 	}
 
 	if (TTF_Init() == -1) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		return;
 	}
 
 	app.window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
 
 	if (app.window == NULL) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		return;
 	}
 
 	app.renderer = SDL_CreateRenderer(app.window, -1, SDL_RENDERER_ACCELERATED);
 
 	if (app.renderer == NULL) {
-		ERROR(SDL_GetError());
+		LOG_ERROR(SDL_GetError());
 		return;
 	}
 
@@ -54,6 +54,8 @@ void App_Init() {
 	app.nchess = 0;
 	app.window_flags = SDL_GetWindowFlags(app.window);
 
+	SDL_SetRenderDrawColor(app.renderer, 150, 150, 150, 255);
+
 }
 
 void App_Destroy() {
@@ -64,7 +66,7 @@ void App_Destroy() {
 		return;
 
 	quit = true;
-	INFO("Closing");
+	LOG_INFO("Closing");
 
 	SDL_DestroyRenderer(app.renderer);
 	SDL_DestroyWindow(app.window);
@@ -73,7 +75,7 @@ void App_Destroy() {
 	IMG_Quit();
 	SDL_Quit();
 
-	INFO("Goodbye");
+	LOG_INFO("Goodbye");
 
 	Log_Quit();
 
@@ -86,12 +88,25 @@ void App_Render() {
 
 	SDL_RenderClear(app.renderer);
 
-	for (int i = 0; i < app.nchess; i++)
-		Board_Render(app.chess[i]);
-	for (int i = 0; i < app.ntexture; i++)
-		Texture_Render(app.texture[i]);
-	for (int i = 0; i < app.nbutton; i++)
-		Button_Render(app.button[i]);
+	if (app.state == STATE_MENU) {
+		for (int i = 0; i < app.nchess; i++)
+			Board_Render(app.chess[i]);
+		for (int i = 0; i < app.ntexture; i++)
+			Texture_Render(app.texture[i]);
+		for (int i = 0; i < app.nbutton; i++)
+			Button_Render(app.button[i]);
+	}
+	if (app.state == STATE_LOCALGAME) {
+		for (int i = 0; i < app.nchess; i++)
+			Board_Render(app.chess[i]);
+		for (int i = 0; i < app.nbutton; i++)
+			Button_Render(app.button[i]);
+		int turn = Board_GetTurn(app.chess[0]);
+		if (turn == TEAM_WHITE)
+			Texture_Render(app.texture[0]);
+		else 
+			Texture_Render(app.texture[1]);
+	}
 
 	SDL_RenderPresent(app.renderer);
 
@@ -149,29 +164,28 @@ int App_State() {
 
 void App_State_Menu() {
 
-	app.ntexture = 1;
+	app.ntexture = 0;
 	app.texture = malloc(sizeof(Button*) * app.ntexture);
 
 	app.nbutton = 4;
 	app.button = malloc(sizeof(Button*) * app.nbutton);
 
+	app.nchess = 0;
+	app.chess = malloc(sizeof(Chess*) * app.nchess);
+
 	if (app.texture == NULL) {
-		ERROR("Can't allocate memory");
+		LOG_ERROR("Can't allocate memory");
 		App_StateClean();
 		app.state = STATE_QUIT;
 		return;
 	}
 
 	if (app.button == NULL) {
-		ERROR("Can't allocate memory");
+		LOG_ERROR("Can't allocate memory");
 		App_StateClean();
 		app.state = STATE_QUIT;
 		return;
 	}
-
-	SDL_Rect tp1 = { 0,0,800,800 }; // texture position
-
-	app.texture[0] = Texture_Init(app.renderer, "img/board.png", tp1);
 
 	SDL_Rect bp1 = { WINDOW_WIDTH / 2 - 420 / 2,150,420,50 }; 
 	SDL_Rect bp2 = { WINDOW_WIDTH / 2 - 420 / 2,225,420,50 }; // button position
@@ -213,39 +227,47 @@ void App_State_Menu() {
 
 void App_State_LocalGame() {
 
-	app.ntexture = 0;
+	app.ntexture = 2;
 	app.texture = malloc(sizeof(Button*) * app.ntexture);
 
-	app.nbutton = 0;
+	app.nbutton = 1;
 	app.button = malloc(sizeof(Button*) * app.nbutton);
 
 	app.nchess = 1;
 	app.chess = malloc(sizeof(Chess*) * app.nchess);
 
 	if (app.texture == NULL) {
-		ERROR("Can't allocate memory");
+		LOG_ERROR("Can't allocate memory");
 		App_StateClean();
 		app.state = STATE_QUIT;
 		return;
 	}
 
 	if (app.button == NULL) {
-		ERROR("Can't allocate memory");
+		LOG_ERROR("Can't allocate memory");
 		App_StateClean();
 		app.state = STATE_QUIT;
 		return;
 	}
 
 	if (app.chess == NULL) {
-		ERROR("Can't allocate memory");
+		LOG_ERROR("Can't allocate memory");
 		App_StateClean();
 		app.state = STATE_QUIT;
 		return;
 	}
 
 	SDL_Rect board_pos = { 0,0,WINDOW_HEIGHT,WINDOW_HEIGHT };
+	SDL_Rect button_pos = { WINDOW_HEIGHT+50, WINDOW_HEIGHT - 100 , 200,50 };
+	SDL_Color bc = { 40,40,40,255 }; // button color
+	SDL_Color btc = { 240,240,240,255 }; // button text color
 
 	app.chess[0] = Board_Init(app.renderer,board_pos);
+
+	app.texture[0] = Texture_CreateText(app.renderer, "silkscreen/slkscr.ttf", 32, "Turn: white",(SDL_Color) { 255, 255, 255, 255}, WINDOW_HEIGHT + 50, 50);
+	app.texture[1] = Texture_CreateText(app.renderer, "silkscreen/slkscr.ttf", 32, "Turn: black",(SDL_Color) { 255, 255, 255, 255}, WINDOW_HEIGHT + 50, 50);
+
+	app.button[0] = Button_Init(app.renderer, "silkscreen/slkscr.ttf", 48, "Menu", button_pos, bc, btc);
 
 	for (int i = 0; i < app.ntexture; i++) {
 		if (app.texture[i] == NULL) {
@@ -270,6 +292,8 @@ void App_State_LocalGame() {
 			return;
 		}
 	}
+
+	Button_SetEvent(app.button[0], App_Event_GoToMenu);
 
 }
 
