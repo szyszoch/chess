@@ -90,7 +90,7 @@ void App_Render() {
 
 	if (app.state == STATE_MENU) {
 		for (int i = 0; i < app.nchess; i++)
-			Board_Render(app.chess[i]);
+			Chess_Render(app.chess[i]);
 		for (int i = 0; i < app.ntexture; i++)
 			Texture_Render(app.texture[i]);
 		for (int i = 0; i < app.nbutton; i++)
@@ -98,10 +98,10 @@ void App_Render() {
 	}
 	if (app.state == STATE_LOCALGAME) {
 		for (int i = 0; i < app.nchess; i++)
-			Board_Render(app.chess[i]);
+			Chess_Render(app.chess[i]);
 		for (int i = 0; i < app.nbutton; i++)
 			Button_Render(app.button[i]);
-		int turn = Board_GetTurn(app.chess[0]);
+		int turn = Chess_GetTurn(app.chess[0]);
 		if (turn == TEAM_WHITE)
 			Texture_Render(app.texture[0]);
 		else 
@@ -133,7 +133,7 @@ void App_HandleEvent() {
 	}
 
 	for (int i = 0; i < app.nchess; i++)
-		Board_Event(app.chess[i], &app.events);
+		Chess_Event(app.chess[i], &app.events);
 	for(int i=0; i<app.nbutton; i++) 
 		Button_Event(app.button[i], &app.events);
 
@@ -262,7 +262,7 @@ void App_State_LocalGame() {
 	SDL_Color bc = { 40,40,40,255 }; // button color
 	SDL_Color btc = { 240,240,240,255 }; // button text color
 
-	app.chess[0] = Board_Init(app.renderer,board_pos);
+	app.chess[0] = Chess_Init(app.renderer,board_pos);
 
 	app.texture[0] = Texture_CreateText(app.renderer, "silkscreen/slkscr.ttf", 32, "Turn: white",(SDL_Color) { 255, 255, 255, 255}, WINDOW_HEIGHT + 50, 50);
 	app.texture[1] = Texture_CreateText(app.renderer, "silkscreen/slkscr.ttf", 32, "Turn: black",(SDL_Color) { 255, 255, 255, 255}, WINDOW_HEIGHT + 50, 50);
@@ -329,7 +329,7 @@ void App_StateClean() {
 
 		for (int i = 0; i < app.nchess; i++) {
 			if (app.chess[i] != NULL) {
-				Board_Destroy(app.chess[i]);
+				Chess_Destroy(app.chess[i]);
 			}
 		}
 

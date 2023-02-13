@@ -8,50 +8,37 @@ typedef struct Texture {
 
 Texture* Texture_LoadFrom(SDL_Renderer* renderer, const char* path, SDL_Rect position) {
 
-	Texture* texture = malloc(sizeof(Texture));
+	SDL_Surface* surface = IMG_Load(path);
+
+	if (surface == NULL) {
+		LOG_ERROR(SDL_GetError());
+		return NULL;
+	}
+	
+	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+	SDL_FreeSurface(surface);
 
 	if (texture == NULL) {
+		LOG_ERROR(SDL_GetError());
+		return NULL;
+	}
+
+	SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
+
+	Texture* new_texture = malloc(sizeof(Texture));
+
+	if (new_texture == NULL) {
 		LOG_ERROR("Can't allocate memory");
+		SDL_DestroyTexture(texture);
 		return NULL;
 	}
 
-	SDL_Surface* source_surface = IMG_Load(path);
+	new_texture->texture = texture;
+	new_texture->dst = position;
+	new_texture->renderer = renderer;
 
-	if (source_surface == NULL) {
-		LOG_ERROR(SDL_GetError());
-		free(texture);
-		return NULL;
-	}
-
-	SDL_Surface* optimalized_surface = SDL_CreateRGBSurface(0, position.w, position.h, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-
-	if (optimalized_surface == NULL) {
-		LOG_ERROR(SDL_GetError());
-		SDL_FreeSurface(source_surface);
-		free(texture);
-		return NULL;
-	}
-
-	optimalized_surface = SDL_ConvertSurface(source_surface, optimalized_surface->format,0);
-
-	texture->texture = SDL_CreateTextureFromSurface(renderer, optimalized_surface);
-
-	SDL_SetTextureBlendMode(texture->texture, SDL_BLENDMODE_BLEND);
-	SDL_SetTextureScaleMode(texture->texture, SDL_ScaleModeLinear);
-
-	SDL_FreeSurface(source_surface);
-	SDL_FreeSurface(optimalized_surface);
-
-	if (texture->texture == NULL) {
-		LOG_ERROR(SDL_GetError());
-		free(texture);
-		return NULL;
-	}
-
-	texture->dst = position;
-	texture->renderer = renderer;
-
-	return texture;
+	return new_texture;
 
 }
 
@@ -116,4 +103,9 @@ void Texture_ChangePosition(Texture* texture, int x, int y) {
 void Texture_Clean(Texture* texture) {
 	if (texture->texture != NULL)
 		SDL_DestroyTexture(texture->texture);
+	texture->dst.x = 0;
+	texture->dst.y = 0;
+	texture->dst.w = 0;
+	texture->dst.h = 0;
+	texture->renderer = NULL;
 }

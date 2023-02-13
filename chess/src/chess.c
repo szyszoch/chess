@@ -21,7 +21,7 @@ typedef struct Chess {
 	bool gameover;
 } Chess;
 
-Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position) {
+Chess* Chess_Init(SDL_Renderer* renderer, SDL_Rect position) {
 
 	Chess* chess = malloc(sizeof(Chess));
 
@@ -54,7 +54,7 @@ Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position) {
 		for (int j = 0; j < CHESSES_COUNT; j++) {
 			if (chess->sprite[i][j] == NULL) {
 				LOG_ERROR(SDL_GetError());
-				Board_Destroy(chess);
+				Chess_Destroy(chess);
 				return NULL;
 			}
 		}
@@ -62,13 +62,13 @@ Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position) {
 
 	if (chess->board_sprite == NULL) {
 		LOG_ERROR(SDL_GetError());
-		Board_Destroy(chess);
+		Chess_Destroy(chess);
 		return NULL;
 	}
 
 	if (chess->select_sprite == NULL) {
 		LOG_ERROR(SDL_GetError());
-		Board_Destroy(chess);
+		Chess_Destroy(chess);
 		return NULL;
 	}
 
@@ -83,7 +83,7 @@ Chess* Board_Init(SDL_Renderer* renderer, SDL_Rect position) {
 
 }
 
-void Board_Destroy(Chess* chess) {
+void Chess_Destroy(Chess* chess) {
 
 	for (int i = 0; i < TEAMS_COUNT; i++) {
 		for (int j = 0; j < CHESSES_COUNT; j++) {
@@ -106,7 +106,7 @@ void Board_Destroy(Chess* chess) {
 
 }
 
-void Board_Render(Chess* chess) {
+void Chess_Render(Chess* chess) {
 
 	Texture_Render(chess->board_sprite);
 
@@ -129,7 +129,7 @@ void Board_Render(Chess* chess) {
 
 }
 
-void Board_Event(Chess* chess, SDL_Event* events) {
+void Chess_Event(Chess* chess, SDL_Event* events) {
 
 	static bool HOVER = false;
 
@@ -243,7 +243,7 @@ void Board_Event(Chess* chess, SDL_Event* events) {
 	}
 }
 
-int Board_GetTurn(Chess* chess) {
+int Chess_GetTurn(Chess* chess) {
 	return chess->turn;
 }
 
