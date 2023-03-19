@@ -11,6 +11,8 @@ SDL_Renderer* renderer = NULL;
 SDL_Window* window = NULL;
 SDL_Event event_handler;
 
+int error = 0;
+
 typedef struct Texture {
 	SDL_Texture* texture;
 } Texture;
@@ -46,16 +48,19 @@ unsigned int objectn = 0;
 int InitRenderer() {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return -1;
 	}
 
 	if (IMG_Init(IMG_INIT_PNG) == 0) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return -2;
 	}
 
 	if (TTF_Init() == -1) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return -3;
 	}
 
@@ -63,6 +68,7 @@ int InitRenderer() {
 
 	if (window == NULL) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return -4;
 	}
 
@@ -70,6 +76,7 @@ int InitRenderer() {
 
 	if (renderer == NULL) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return -5;
 	}
 
@@ -264,6 +271,7 @@ unsigned int LoadTexture(const char* path) {
 
 	if (surface == NULL) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return INVALID_OBJECT;
 	}
 
@@ -272,6 +280,7 @@ unsigned int LoadTexture(const char* path) {
 
 	if (texture == NULL) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return INVALID_OBJECT;
 	}
 
@@ -294,6 +303,7 @@ unsigned int CreateButton(const char* title, SDL_Rect position, Button_F* button
 
 	if (font == NULL) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return INVALID_OBJECT;
 	}
 
@@ -302,6 +312,7 @@ unsigned int CreateButton(const char* title, SDL_Rect position, Button_F* button
 
 	if (text == NULL) {
 		LOG_ERROR(SDL_GetError());
+		error++;
 		return INVALID_OBJECT;
 	}
 
@@ -310,6 +321,7 @@ unsigned int CreateButton(const char* title, SDL_Rect position, Button_F* button
 	if (normal_sprite == NULL) {
 		LOG_ERROR(SDL_GetError());
 		SDL_FreeSurface(text);
+		error++;
 		return INVALID_OBJECT;
 	}
 
@@ -319,6 +331,7 @@ unsigned int CreateButton(const char* title, SDL_Rect position, Button_F* button
 		LOG_ERROR(SDL_GetError());
 		SDL_FreeSurface(text);
 		SDL_FreeSurface(normal_sprite);
+		error++;
 		return INVALID_OBJECT;
 	}
 
@@ -345,6 +358,7 @@ unsigned int CreateButton(const char* title, SDL_Rect position, Button_F* button
 	if (object[b_id].button.texture[BUTTONSTATE_NORMAL] == NULL || object[b_id].button.texture[BUTTONSTATE_HOVER] == NULL) {
 		LOG_ERROR(SDL_GetError());
 		DestroyObject(b_id);
+		error++;
 		return INVALID_OBJECT;
 	}
 
@@ -496,38 +510,7 @@ void HandleObjectEvent(unsigned int id) {
 void HandleObjectsEvent() {
 
 	for (unsigned int i = 0; i < objectn; i++) {
-
-		bool HOVER = false;
-		bool CLICK = false;
-
-		int x = 0;
-		int y = 0;
-		SDL_GetMouseState(&x, &y);
-		SDL_Rect point = { x,y,1,1 };
-		if (SDL_HasIntersection(&object[i].dst, &point))
-			HOVER = true;
-
-		if (HOVER && event_handler.button.button == SDL_BUTTON_LEFT && event_handler.type == SDL_MOUSEBUTTONDOWN)
-			CLICK = true;
-		
-		switch (object[i].type) {
-		case OBJECT_NONE: {
-			break;
-		}
-		case OBJECT_TEXTURE: {
-			break;
-		}
-		case OBJECT_BUTTON: {
-			if (object[i].button.event_type == BUTTONEVENT_BOOL)
-				object[i].button.click = false;
-			else {
-				if (CLICK) {
-					object[i].button.func();
-				}
-			}
-			break;
-		}
-		}
+		HandleObjectEvent(i);
 	}
 
 }
@@ -544,6 +527,7 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 
 		if (background == NULL) {
 			LOG_ERROR(SDL_GetError());
+			error++;
 			return INVALID_OBJECT;
 		}
 
@@ -553,6 +537,7 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 
 		if (font == NULL) {
 			LOG_ERROR(SDL_GetError());
+			error++;
 			return INVALID_OBJECT;
 		}
 
@@ -562,6 +547,7 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 		if (text == NULL) {
 			LOG_ERROR(SDL_GetError());
 			SDL_FreeSurface(background);
+			error++;
 			return INVALID_OBJECT;
 		}
 
@@ -575,6 +561,7 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 		if (texture == NULL) {
 			LOG_ERROR(SDL_GetError());
 			SDL_DestroyTexture(texture);
+			error++;
 			return INVALID_OBJECT;
 		}
 
@@ -590,6 +577,7 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 
 		if (button_id == INVALID_OBJECT) {
 			DestroyObject(texture_id);
+			error++;
 			return INVALID_OBJECT;
 		}
 	}
@@ -603,3 +591,8 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 	return m_id;
 
 }
+
+int ErrorCount() {
+	return error;
+}
+

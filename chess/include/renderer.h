@@ -55,6 +55,7 @@ extern SDL_Event event_handler;
 
 int InitRenderer();
 void DestroyRenderer();
+int ErrorCount();
 
 void CleanRenderer();
 

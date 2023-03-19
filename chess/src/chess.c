@@ -75,34 +75,27 @@ void App_State_Menu() {
 	ReserveObjectMemory(4);
 
 	// Init objects
+	unsigned int object;
 
-	unsigned int nbutton = 4;
-	unsigned int button[4];
+	object = CreateButton("Local Game", bp1, &button_form, BUTTONEVENT_FUNC);
+	SetButtonEvent(object, App_Event_GoToLocalGame);
 
-	button[0] = CreateButton("Local Game", bp1, &button_form, BUTTONEVENT_FUNC);
-	button[1] = CreateButton("Join Game", bp2, &button_form, BUTTONEVENT_FUNC);
-	button[2] = CreateButton("Create Game", bp3, &button_form, BUTTONEVENT_FUNC);
-	button[3] = CreateButton("Exit", bp4, &button_form, BUTTONEVENT_FUNC);
-	
-	unsigned int nmessage_box = 1;
-	unsigned int message_box[1];
+	object = CreateButton("Join Game", bp2, &button_form, BUTTONEVENT_FUNC);
+	SetButtonEvent(object, App_Event_GoToJoinGame);
 
-	{ // Error handling
+	object = CreateButton("Create Game", bp3, &button_form, BUTTONEVENT_FUNC);
+	SetButtonEvent(object, App_Event_GoToCreateGame);
+
+	object = CreateButton("Exit", bp4, &button_form, BUTTONEVENT_FUNC);
+	SetButtonEvent(object, App_Event_Exit);
+
+	// Error handling
 		
-		for (unsigned int i = 0; i < nbutton; i++) {
-			if (button[i] == INVALID_OBJECT) {
-				CleanRenderer();
-				app_state = STATE_QUIT;
-				return;
-			}
-		}
-
+	if (ErrorCount() > 0) {
+		CleanRenderer();
+		app_state = STATE_QUIT;
+		return;
 	}
-	
-	SetButtonEvent(button[0], App_Event_GoToLocalGame);
-	SetButtonEvent(button[1], App_Event_GoToJoinGame);
-	SetButtonEvent(button[2], App_Event_GoToCreateGame);
-	SetButtonEvent(button[3], App_Event_Exit);
 
 	while (app_state == STATE_MENU) {
 	
@@ -118,20 +111,12 @@ void App_State_Menu() {
 				app_state = STATE_QUIT;
 			}
 			
-			for (unsigned int i = 0; i < nmessage_box; i++) {
-				HandleObjectEvent(message_box[i]);
-			}
-
-			for (unsigned int i = 0; i < nbutton; i++) {
-				HandleObjectEvent(button[i]);
-			}
+			HandleObjectsEvent();
 		}
 
 		{ // render handling
 			
-			for (unsigned int i = 0; i < nbutton; i++) {
-				RenderObject(button[i]);
-			}
+			RenderObjects();
 			
 			SDL_RenderPresent(renderer);
 			SDL_RenderClear(renderer);
