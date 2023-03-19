@@ -1,53 +1,35 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 #include <stdbool.h>
-#include "texture.h"
-#include "math.h"
+#include "log.h"
+#include "renderer.h"
+#include "board.h"
 
-typedef enum ChessTeam {
-	TEAM_NONE = -1,
-	TEAM_WHITE,
-	TEAM_BLACK,
-	TEAMS_COUNT
-} ChessTeam;
+#define WINDOW_TITLE "Chess"
+#define WINDOW_WIDTH 900
+#define WINDOW_HEIGHT 600
 
-typedef enum ChessType {
-	CHESS_NONE = -1,
-	CHESS_BISHOP,
-	CHESS_KING,
-	CHESS_KNIGHT,
-	CHESS_PAWN,
-	CHESS_QUEEN,
-	CHESS_ROOK,
-	CHESSES_COUNT
-}  ChessType;
+#define STATE_QUIT 0
+#define STATE_MENU 1
+#define STATE_GAME 2
+#define STATE_JOINGAME 3
+#define STATE_CREATEGAME 4
 
-typedef struct Chess Chess;
-typedef struct Board Board;
-typedef struct Piece Piece;
-typedef bool bool88[8][8];
+extern app_state;
 
-void Chess_Render(Chess* chess);
-void Chess_Event(Chess* chess, SDL_Event* events);
-Chess* Chess_Init(SDL_Renderer* renderer, SDL_Rect position);
-void Chess_Destroy(Chess* chess);
-int Chess_GetTurn(Chess* chess);
+void App_Init();
+void App_Destroy();
+void App_Delay();
 
-bool Board_IsKingInDanger(Board* board, ChessTeam team);
-bool Board_KingCannotMove(Board* board, ChessTeam team);
-bool Board_GameOver(Chess* chess);
-bool Board_CanProtectKing(Board* board, int src_x, int src_y, int dst_x, int dst_y, ChessTeam team);
-void Board_GetKingDangerZone(Board* board, ChessTeam team, bool88 king_danger_zone);
-void Board_Restart(Board* board);
-void Board_Move(Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_CanMove(Board* board, int src_x, int src_y, int dst_x, int dst_y);
-void Board_Copy(Board* src, Board* dst);
-bool Board_Pattern(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_Pattern_Bishop(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_Pattern_King(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_Pattern_Knight(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_Pattern_Pawn_Move(	Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_Pattern_Pawn_Capture(Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_Pattern_Queen(		Board* board, int src_x, int src_y, int dst_x, int dst_y);
-bool Board_Pattern_Rook(		Board* board,  int src_x, int src_y, int dst_x, int dst_y);
+void App_State_Menu();
+void App_State_Game();
+void App_State_JoinGame();
+void App_State_CreateGame();
+
+void App_Event_Exit();
+void App_Event_GoToMenu();
+void App_Event_GoToLocalGame();
+void App_Event_GoToJoinGame();
+void App_Event_GoToCreateGame();

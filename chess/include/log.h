@@ -21,9 +21,9 @@ extern char* Log_GetTime();
 
 #else
 
-#define INFO(x) 
-#define WARN(x)
-#define ERROR(x)
+#define LOG_INFO(x) 
+#define LOG_WARN(x)
+#define LOG_ERROR(x)
 
 #endif
 
