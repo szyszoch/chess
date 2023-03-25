@@ -1,10 +1,11 @@
-#include "renderer.h"
+#include "object.h"
 
 typedef enum ObjectType {
 	OBJECT_NONE,
 	OBJECT_TEXTURE,
 	OBJECT_BUTTON,
-	OBJECT_MESSAGEBOX
+	OBJECT_MESSAGEBOX,
+	OBJECT_CHESS
 } ObjectType;
 
 SDL_Renderer* renderer = NULL;
@@ -19,7 +20,6 @@ typedef struct Texture {
 
 typedef struct Button {
 	void_func_ptr func;
-	bool click;
 	SDL_Texture* texture[2];
 	int button_state;
 	int event_type;
@@ -30,6 +30,27 @@ typedef struct MessageBox {
 	unsigned int button;
 } MessageBox;
 
+enum TextureID {
+	TEXTURE_BLACK_BISHOP,
+	TEXTURE_BLACK_KING,
+	TEXTURE_BLACK_KNIGHT,
+	TEXTURE_BLACK_PAWN,
+	TEXTURE_BLACK_QUEEN,
+	TEXTURE_BLACK_ROOK,
+	TEXTURE_WHITE_BISHOP,
+	TEXTURE_WHITE_KING,
+	TEXTURE_WHITE_KNIGHT,
+	TEXTURE_WHITE_PAWN,
+	TEXTURE_WHITE_QUEEN,
+	TEXTURE_WHITE_ROOK,
+	TEXTURE_BOARD,
+	TEXTURE_COUNT
+};
+
+typedef struct Chess {
+	Board board;
+	unsigned int texture[TEXTURE_COUNT];
+} Chess;
 
 typedef struct Object {
 	int type;
@@ -37,8 +58,13 @@ typedef struct Object {
 		Texture texture;
 		Button button;
 		MessageBox message_box;
+		Chess chess;
 	};
 	SDL_Rect dst;
+	bool hover;
+	bool click;
+	bool hide; 
+	bool sub; // if object is member of another object
 } Object;
 
 
@@ -87,6 +113,9 @@ void CleanRenderer() {
 	for (unsigned int i = 0; i < objectn; i++) {
 		DestroyObject(i);
 	}
+	free(object);
+	object = NULL;
+	objectn = 0;
 }
 
 void DestroyRenderer() {
@@ -117,19 +146,15 @@ void DestroyObject(unsigned int id) {
 				SDL_DestroyTexture(object[id].button.texture[BUTTONSTATE_NORMAL]);
 			if (object[id].button.texture[BUTTONSTATE_HOVER] != NULL)
 				SDL_DestroyTexture(object[id].button.texture[BUTTONSTATE_HOVER]);
-			object[id].button.click = false;
 			object[id].button.func = NULL;
 			object[id].button.event_type = 0;
 			object[id].button.button_state = 0;
 			break;
 		}
-		case OBJECT_MESSAGEBOX: {
-			DestroyObject(object[id].message_box.texture);
-			DestroyObject(object[id].message_box.button);
-		}
 		}
 
 	}
+	object[id].click = false;
 	object[id].dst = (SDL_Rect){ 0,0,0,0 };
 	object[id].type = OBJECT_NONE;
 }
@@ -156,20 +181,13 @@ void RenderObjects() {
 
 	for (unsigned int i = 0; i < objectn; i++) {
 
-		switch(object[i].type) {
-		case OBJECT_NONE: {
+		if (object[i].sub == true)
 			continue;
-			break;
-		}
-		case OBJECT_TEXTURE: {
-			SDL_RenderCopy(renderer, object[i].texture.texture, NULL, &object[i].dst);
-			break;
-		}
-		case OBJECT_BUTTON: {
-			SDL_RenderCopy(renderer, object[i].button.texture[object[i].button.button_state], NULL, &object[i].dst);
-			break;
-		}
-		}
+		
+		if (object[i].hide == true)
+			continue;
+
+		RenderObject(i);
 
 	}
 
@@ -179,6 +197,9 @@ void RenderObject(unsigned int id) {
 
 	if (id >= objectn)
 		return;
+	if (object[id].hide == true)
+		return;
+
 	switch (object[id].type) {
 	case OBJECT_NONE: {
 		break;
@@ -194,6 +215,86 @@ void RenderObject(unsigned int id) {
 	case OBJECT_MESSAGEBOX: {
 		RenderObject(object[id].message_box.texture);
 		RenderObject(object[id].message_box.button);
+		break;
+	}
+	case OBJECT_CHESS: {
+		SetObjectPositionAndDimensions(object[id].chess.texture[TEXTURE_BOARD], object[id].dst.x, object[id].dst.y, object[id].dst.w, object[id].dst.h);
+		RenderObject(object[id].chess.texture[TEXTURE_BOARD]);
+
+		int chess_width = (object[id].dst.w / 8);
+		int chess_height = (object[id].dst.h / 8);
+
+		for (int x = 0; x < 8; x++) {
+			for (int y = 0; y < 8; y++) {
+
+				if (object[id].chess.board.piece[x][y].team == TEAM_NONE || object[id].chess.board.piece[x][y].state == CHESS_NONE)
+					continue;
+
+				int tex_id = 0;
+
+				switch (object[id].chess.board.piece[x][y].team) {
+				case TEAM_WHITE: {
+					switch (object[id].chess.board.piece[x][y].state) {
+					case CHESS_BISHOP: {tex_id = TEXTURE_WHITE_BISHOP; break; }
+					case CHESS_KING: {tex_id = TEXTURE_WHITE_KING; break; }
+					case CHESS_KNIGHT: {tex_id = TEXTURE_WHITE_KNIGHT; break; }
+					case CHESS_PAWN: {tex_id = TEXTURE_WHITE_PAWN; break; }
+					case CHESS_QUEEN: {tex_id = TEXTURE_WHITE_QUEEN; break; }
+					case CHESS_ROOK: {tex_id = TEXTURE_WHITE_ROOK; break; }
+					}
+					break;
+				}
+				case TEAM_BLACK: {
+					switch (object[id].chess.board.piece[x][y].state) {
+					case CHESS_BISHOP: {tex_id = TEXTURE_BLACK_BISHOP; break; }
+					case CHESS_KING: {tex_id = TEXTURE_BLACK_KING; break; }
+					case CHESS_KNIGHT: {tex_id = TEXTURE_BLACK_KNIGHT; break; }
+					case CHESS_PAWN: {tex_id = TEXTURE_BLACK_PAWN; break; }
+					case CHESS_QUEEN: {tex_id = TEXTURE_BLACK_QUEEN; break; }
+					case CHESS_ROOK: {tex_id = TEXTURE_BLACK_ROOK; break; }
+					}
+					break;
+				}
+				}
+
+				if (x == object[id].chess.board.select_x && y == object[id].chess.board.select_y) {
+					int mx, my;
+					SDL_GetMouseState(&mx, &my);
+
+					SetObjectPositionAndDimensions(object[id].chess.texture[tex_id], mx - chess_width / 2, my - chess_height / 2, chess_width, chess_height);
+					RenderObject(object[id].chess.texture[tex_id]);
+				}
+					
+				else {
+					SetObjectPositionAndDimensions(object[id].chess.texture[tex_id], x * chess_width, y * chess_height, chess_width, chess_height);
+					RenderObject(object[id].chess.texture[tex_id]);
+				}
+
+			}
+		}
+		break;
+	}
+	}
+}
+
+void RenderObjectAt(unsigned int id, int x, int y, int w, int h) {
+	if (id >= objectn)
+		return;
+	if (object[id].hide == true)
+		return;
+
+	SDL_Rect pos = { x,y,w,h };
+
+	switch (object[id].type) {
+	case OBJECT_NONE: {
+		break;
+	}
+	case OBJECT_TEXTURE: {
+		SDL_RenderCopy(renderer, object[id].texture.texture, NULL, &pos);
+		break;
+	}
+	case OBJECT_BUTTON: {
+		SDL_RenderCopy(renderer, object[id].button.texture[object[id].button.button_state], NULL, &pos);
 		break;
 	}
 	}
@@ -367,11 +468,6 @@ unsigned int CreateButton(const char* title, SDL_Rect position, Button_F* button
 	object[b_id].button.button_state = BUTTONSTATE_NORMAL;
 	object[b_id].button.event_type = event_type;
 
-	if (event_type == BUTTONEVENT_FUNC)
-		object[b_id].button.func = NULL;
-	if (event_type == BUTTONEVENT_BOOL)
-		object[b_id].button.click = false;
-
 	return b_id;
 }
 
@@ -463,6 +559,14 @@ void HandleObjectEvent(unsigned int id) {
 	if (id >= objectn)
 		return;
 
+	int x = 0;
+	int y = 0;
+	SDL_GetMouseState(&x, &y);
+	SDL_Rect point = { x,y,1,1 };
+
+	object[id].hover = SDL_HasIntersection(&object[id].dst, &point);
+	object[id].click = object[id].hover && event_handler.button.button == SDL_BUTTON_LEFT && event_handler.type == SDL_MOUSEBUTTONDOWN;
+
 	switch (object[id].type) {
 	case OBJECT_NONE: {
 		break;
@@ -471,46 +575,100 @@ void HandleObjectEvent(unsigned int id) {
 		break;
 	}
 	case OBJECT_BUTTON: {
-
-		bool HOVER = false;
-		bool CLICK = false;
-
-		int x = 0;
-		int y = 0;
-		SDL_GetMouseState(&x, &y);
-		SDL_Rect point = { x,y,1,1 };
-		if (SDL_HasIntersection(&object[id].dst, &point))
-			HOVER = true;
-
-		if (HOVER && event_handler.button.button == SDL_BUTTON_LEFT && event_handler.type == SDL_MOUSEBUTTONDOWN)
-			CLICK = true;
-
-		object[id].button.click = false;
-		object[id].button.button_state = (HOVER) ? BUTTONSTATE_HOVER : BUTTONSTATE_NORMAL;
-
-		if (CLICK) {
-			if (object[id].button.event_type == BUTTONEVENT_BOOL)
-				object[id].button.click = true;
-			else
-				object[id].button.func();
-		}
-
+		object[id].button.button_state = (object[id].hover) ? BUTTONSTATE_HOVER : BUTTONSTATE_NORMAL;
+		if (object[id].button.event_type == BUTTONEVENT_FUNC && object[id].click)
+			object[id].button.func();
 		break;
 	}
 	case OBJECT_MESSAGEBOX: {
 		HandleObjectEvent(object[id].message_box.texture);
 		HandleObjectEvent(object[id].message_box.button);
-		if (object[object[id].message_box.button].button.click == true) {
+		if (object[object[id].message_box.button].click == true) {
 			DestroyObject(id);
 		}
+		break;
 	}
+	case OBJECT_CHESS: {
+		if (event_handler.button.button == SDL_BUTTON_LEFT) {
+
+			if (object[id].hover == false) {
+				object[id].chess.board.select_x = -1;
+				object[id].chess.board.select_y = -1;
+				return;
+			}
+
+			if (event_handler.type == SDL_MOUSEBUTTONUP) {
+
+				if (object[id].chess.board.select_x != -1 && object[id].chess.board.select_y != -1) {
+					int x = 0;
+					int y = 0;
+					SDL_GetMouseState(&x, &y);
+
+					x = (x - object[id].dst.x) / (object[id].dst.w / 8);
+					y = (y - object[id].dst.y) / (object[id].dst.h / 8);
+
+					if (x < 0 || x > 7 || y < 0 || y > 7) {
+						object[id].chess.board.select_x = -1;
+						object[id].chess.board.select_y = -1;
+						return;
+					}
+					object[id].chess.board.last_move.src_x = object[id].chess.board.select_x;
+					object[id].chess.board.last_move.src_y = object[id].chess.board.select_y;
+					object[id].chess.board.last_move.dst_x = x;
+					object[id].chess.board.last_move.dst_y = y;
+
+					object[id].chess.board.select_x = -1;
+					object[id].chess.board.select_y = -1;
+				}
+
+			}
+
+			if (event_handler.type == SDL_MOUSEBUTTONDOWN) {
+				int x = 0;
+				int y = 0;
+				SDL_GetMouseState(&x, &y);
+
+				x = (x - object[id].dst.x) / (object[id].dst.w / 8);
+				y = (y - object[id].dst.y) / (object[id].dst.h / 8);
+
+				if (x < 0 || x > 7 || y < 0 || y > 7) {
+					return;
+				}
+
+				if (object[id].chess.board.piece[x][y].team == object[id].chess.board.turn) {
+					object[id].chess.board.select_x = x;
+					object[id].chess.board.select_y = y;
+					return;
+				}
+			}
+		}
+
+		break;
+	}
+
 	}
 }
 
 void HandleObjectsEvent() {
 
+	// MessageBox has the highest priority
+
 	for (unsigned int i = 0; i < objectn; i++) {
+		
+		if (object[i].type == OBJECT_MESSAGEBOX) {
+			HandleObjectEvent(i);
+			if (object[i].hover)
+				return;
+		}
+		
+	}
+
+	// Then others
+
+	for (unsigned int i = 0; i < objectn; i++) {
+
 		HandleObjectEvent(i);
+
 	}
 
 }
@@ -588,6 +746,9 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 	object[m_id].type = OBJECT_MESSAGEBOX;
 	SetObjectPositionAndDimensions(m_id, pos.x, pos.y, pos.w, pos.h);
 
+	object[texture_id].sub = true;
+	object[button_id].sub = true;
+
 	return m_id;
 
 }
@@ -596,3 +757,46 @@ int ErrorCount() {
 	return error;
 }
 
+void HideObject(unsigned int id) {
+	object[id].hide = true;
+}
+
+unsigned int CreateChess(SDL_Rect pos) {
+
+	unsigned int tex_id[TEXTURE_COUNT] = { 0 };
+
+	tex_id[TEXTURE_BOARD] = LoadTexture("img/board.png");
+	tex_id[TEXTURE_BLACK_BISHOP] = LoadTexture("img/black_bishop.png");
+	tex_id[TEXTURE_BLACK_KING] = LoadTexture("img/black_king.png");
+	tex_id[TEXTURE_BLACK_KNIGHT] = LoadTexture("img/black_knight.png");
+	tex_id[TEXTURE_BLACK_PAWN] = LoadTexture("img/black_pawn.png");
+	tex_id[TEXTURE_BLACK_QUEEN] = LoadTexture("img/black_queen.png");
+	tex_id[TEXTURE_BLACK_ROOK] = LoadTexture("img/black_rook.png");
+	tex_id[TEXTURE_WHITE_BISHOP] = LoadTexture("img/white_bishop.png");
+	tex_id[TEXTURE_WHITE_KING] = LoadTexture("img/white_king.png");
+	tex_id[TEXTURE_WHITE_KNIGHT] = LoadTexture("img/white_knight.png");
+	tex_id[TEXTURE_WHITE_PAWN] = LoadTexture("img/white_pawn.png");
+	tex_id[TEXTURE_WHITE_QUEEN] = LoadTexture("img/white_queen.png");
+	tex_id[TEXTURE_WHITE_ROOK] = LoadTexture("img/white_rook.png");
+		
+	unsigned int o_id = CreateObject();
+	object[o_id].type = OBJECT_CHESS;
+	Board_Restart(&object[o_id].chess.board);
+	SetObjectPositionAndDimensions(o_id,pos.x,pos.y,pos.w,pos.h);
+	
+	for (int i = 0; i < TEXTURE_COUNT; i++) {
+		object[o_id].chess.texture[i] = tex_id[i];
+		object[object[o_id].chess.texture[i]].sub = true;
+
+	}
+		
+	return o_id;
+}
+
+Board* GetChessBoard(unsigned int id) {
+	if (id >= objectn)
+		return NULL;
+	if (object[id].type != OBJECT_CHESS)
+		return NULL;
+	return &object[id].chess.board;
+}

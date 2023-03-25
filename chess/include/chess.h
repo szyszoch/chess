@@ -4,7 +4,7 @@
 #include <SDL_ttf.h>
 #include <stdbool.h>
 #include "log.h"
-#include "renderer.h"
+#include "object.h"
 #include "board.h"
 
 #define WINDOW_TITLE "Chess"

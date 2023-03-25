@@ -2,8 +2,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <stdbool.h>
-#include "renderer.h"
 #include "math.h"
+#include "log.h"
 
 typedef enum ChessTeam {
 	TEAM_NONE = -1,
@@ -47,6 +47,7 @@ typedef struct Board {
 	bool gameover;
 	int select_x;
 	int select_y;
+	Move last_move;
 } Board;
 
 typedef bool bool88[8][8];

@@ -133,41 +133,36 @@ void App_State_Menu() {
 void App_State_Game() {
 
 	// Init variables
+	
+	unsigned int button[1] = { 0 };
+	unsigned int chess = 0;
 
+	Board* board = NULL;
+	
 	SDL_Rect board_pos = { 0,0,600,600 };
-
 	SDL_Rect bp1 = { WINDOW_WIDTH-200,WINDOW_HEIGHT-100,150,50 };	// button position
 	
-	unsigned int nbutton = 1;
-	ReserveObjectMemory(nbutton);
-
 	// Init objects
+	ReserveObjectMemory(2);
 
-	unsigned int button[1];
+	button[0] = CreateButton("Menu", bp1, &button_form, BUTTONEVENT_FUNC);
+	SetButtonEvent(button[0], App_Event_GoToMenu);
 
-	if (Board_InitTextures(renderer) == false) {
+	chess = CreateChess(board_pos);
+	board = GetChessBoard(chess);
+
+	// Error handling
+	if (board == NULL) {
+		CleanRenderer();
 		app_state = STATE_QUIT;
 		return;
 	}
 
-	button[0] = CreateButton("Menu", bp1, &button_form, BUTTONEVENT_FUNC);
-
-	{ // Error handling
-
-		for (unsigned int i = 0; i < nbutton; i++) {
-			if (button[i] == INVALID_OBJECT) {
-				CleanRenderer();
-				app_state = STATE_QUIT;
-				return;
-			}
-		}
-
+	if (ErrorCount() > 0) {
+		CleanRenderer();
+		app_state = STATE_QUIT;
+		return;
 	}
-
-	SetButtonEvent(button[0], App_Event_GoToMenu);
-
-	Board board;
-	Board_Restart(&board);
 
 	while (app_state == STATE_GAME) {
 
@@ -182,43 +177,35 @@ void App_State_Game() {
 			if (event_handler.type == SDL_QUIT) {
 				app_state = STATE_QUIT;
 			}
+			
+			HandleObjectsEvent();
 
-			if (board.gameover == false) { 
+			if (board->gameover == false) { 
 				// Handle Board
 
-				Move move = {-1,-1,-1,-1};
-				Board_Handle_Events(&board, &board_pos, &move);
-				
-				if (move.src_x != -1) {
+				if (board->last_move.src_x != -1) {
 					
 					
-					if (Board_CanMove(&board, move.src_x, move.src_y, move.dst_x, move.dst_y)) {
-						Board_Move(&board, move.src_x, move.src_y, move.dst_x, move.dst_y);
-						Board_ChangeTurn(&board);
+					if (Board_CanMove(board, board->last_move.src_x, board->last_move.src_y, board->last_move.dst_x, board->last_move.dst_y)) {
+						Board_Move(board, board->last_move.src_x, board->last_move.src_y, board->last_move.dst_x, board->last_move.dst_y);
+						Board_ChangeTurn(board);
 					}
 
 				}
-				if (Board_IsKingInDanger(&board, board.turn) && Board_KingCannotMove(&board, board.turn)) {
-					board.gameover = true;
+				if (Board_IsKingInDanger(board, board->turn) && Board_KingCannotMove(board, board->turn)) {
+					board->gameover = true;
 					LOG_INFO("GameOver");
 				}
 				
 			}
 
-			for (unsigned int i = 0; i < nbutton; i++) {
-				HandleObjectEvent(button[i]);
-			}
 
 		}
 
 		{ // render handling
-
-			for (unsigned int i = 0; i < nbutton; i++) {
-				RenderObject(button[i]);
-			}
+		
+			RenderObjects();
 			
-			Board_Render(&board, &board_pos);
-
 			SDL_RenderPresent(renderer);
 			SDL_RenderClear(renderer);
 

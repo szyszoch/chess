@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <stdbool.h>
 #include "log.h"
+#include "board.h"
 
 #define WINDOW_TITLE "Chess"
 #define WINDOW_WIDTH 900
@@ -61,6 +62,8 @@ void CleanRenderer();
 
 void RenderObjects();
 void RenderObject(unsigned int id);
+void RenderObjectAt(unsigned int id, int x, int y, int w, int h);
+void HideObject(unsigned int id); // doesn't matter when call RenderObjectAt() function
 
 void HandleObjectEvent(unsigned int id);
 void HandleObjectsEvent();
@@ -76,9 +79,11 @@ unsigned int CreateText(const char* title, Text_F* text_form);
 unsigned int CreateRect(Uint32 color, int width, int height);
 void MergeTextures(unsigned int src, SDL_Rect pos, unsigned int dst);
 
-
 unsigned int CreateButton(const char* title, SDL_Rect position, Button_F* button_form, int event_type);
 void SetButtonEvent(unsigned int id, void_func_ptr function);
 
-
 unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_form, Text_F* text_form);
+
+unsigned int CreateChess(SDL_Rect pos);
+
+Board* GetChessBoard(unsigned int id);

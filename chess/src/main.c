@@ -11,7 +11,7 @@ int main(int argc, char* args[]) {
 		switch (app_state) {
 		case STATE_QUIT:		{run = false			; break; };
 		case STATE_MENU:		{App_State_Menu()		; break; };
-		case STATE_GAME:	{App_State_Game(); break; };
+		case STATE_GAME:		{App_State_Game()		; break; };
 		}
 
 	}
