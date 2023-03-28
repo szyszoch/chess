@@ -52,9 +52,6 @@ void App_Destroy() {
 	LOG_INFO("Closing");
 
 	DestroyRenderer();
-
-	LOG_INFO("Goodbye");
-
 	Log_Quit();
 
 }
@@ -75,19 +72,21 @@ void App_State_Menu() {
 	ReserveObjectMemory(4);
 
 	// Init objects
-	unsigned int object;
+	{
+		unsigned int object;
 
-	object = CreateButton("Local Game", bp1, &button_form, BUTTONEVENT_FUNC);
-	SetButtonEvent(object, App_Event_GoToLocalGame);
+		object = CreateButton("Local Game", bp1, &button_form, BUTTONEVENT_FUNC);
+		SetButtonEvent(object, App_Event_GoToLocalGame);
 
-	object = CreateButton("Join Game", bp2, &button_form, BUTTONEVENT_FUNC);
-	SetButtonEvent(object, App_Event_GoToJoinGame);
+		object = CreateButton("Join Game", bp2, &button_form, BUTTONEVENT_FUNC);
+		SetButtonEvent(object, App_Event_GoToJoinGame);
 
-	object = CreateButton("Create Game", bp3, &button_form, BUTTONEVENT_FUNC);
-	SetButtonEvent(object, App_Event_GoToCreateGame);
+		object = CreateButton("Create Game", bp3, &button_form, BUTTONEVENT_FUNC);
+		SetButtonEvent(object, App_Event_GoToCreateGame);
 
-	object = CreateButton("Exit", bp4, &button_form, BUTTONEVENT_FUNC);
-	SetButtonEvent(object, App_Event_Exit);
+		object = CreateButton("Exit", bp4, &button_form, BUTTONEVENT_FUNC);
+		SetButtonEvent(object, App_Event_Exit);
+	}
 
 	// Error handling
 		
@@ -115,12 +114,9 @@ void App_State_Menu() {
 		}
 
 		{ // render handling
-			
 			RenderObjects();
-			
 			SDL_RenderPresent(renderer);
 			SDL_RenderClear(renderer);
-
 		}
 		App_Delay();
 
@@ -133,20 +129,17 @@ void App_State_Menu() {
 void App_State_Game() {
 
 	// Init variables
-	
-	unsigned int button[1] = { 0 };
-	unsigned int chess = 0;
-
-	Board* board = NULL;
-	
-	SDL_Rect board_pos = { 0,0,600,600 };
+	unsigned int button = 0;										// button object
+	unsigned int chess = 0;											// chess object
+	Board* board = NULL;											// virtual board
+	SDL_Rect board_pos = { 0,0,600,600 };							// board position
 	SDL_Rect bp1 = { WINDOW_WIDTH-200,WINDOW_HEIGHT-100,150,50 };	// button position
 	
 	// Init objects
-	ReserveObjectMemory(2);
+	ReserveObjectMemory(G_BUTTON + G_CHESS);											
 
-	button[0] = CreateButton("Menu", bp1, &button_form, BUTTONEVENT_FUNC);
-	SetButtonEvent(button[0], App_Event_GoToMenu);
+	button = CreateButton("Menu", bp1, &button_form, BUTTONEVENT_FUNC);
+	SetButtonEvent(button, App_Event_GoToMenu);
 
 	chess = CreateChess(board_pos);
 	board = GetChessBoard(chess);
@@ -162,6 +155,12 @@ void App_State_Game() {
 		CleanRenderer();
 		app_state = STATE_QUIT;
 		return;
+	}
+
+	if (Board_IsKingInDanger(board, board->turn) && Board_KingCannotMove(board, board->turn)) {
+		board->gameover = true;
+		const char* winner = (board->turn == TEAM_WHITE) ? "black win" : "white win";
+		CreateMessageBox(winner, (SDL_Rect) { 200, 200, 250, 200 }, & button_form, & text_form);
 	}
 
 	while (app_state == STATE_GAME) {
@@ -186,30 +185,33 @@ void App_State_Game() {
 				if (board->last_move.src_x != -1) {
 					
 					
-					if (Board_CanMove(board, board->last_move.src_x, board->last_move.src_y, board->last_move.dst_x, board->last_move.dst_y)) {
-						Board_Move(board, board->last_move.src_x, board->last_move.src_y, board->last_move.dst_x, board->last_move.dst_y);
-						Board_ChangeTurn(board);
+					if (Board_CanMove(board, board->last_move)) {
+
+						if (Board_IsKingInDanger(board, board->turn) == false || board->piece[board->last_move.src_x][board->last_move.src_y].chess_type == CHESS_KING || Board_CanProtectKing(board,board->last_move,board->turn)) {
+							Board_Move(board, board->last_move);
+							Board_ChangeTurn(board);
+						}
+
 					}
 
-				}
-				if (Board_IsKingInDanger(board, board->turn) && Board_KingCannotMove(board, board->turn)) {
-					board->gameover = true;
-					LOG_INFO("GameOver");
+					if (Board_GameOver(board,board->turn) == true) {
+						board->gameover = true;
+						const char* winner = (board->turn == TEAM_WHITE) ? "black win" : "white win";
+						CreateMessageBox(winner, (SDL_Rect) { 200, 200, 250, 200 }, & button_form, & text_form);
+					}
+
 				}
 				
 			}
 
-
 		}
 
 		{ // render handling
-		
 			RenderObjects();
-			
 			SDL_RenderPresent(renderer);
 			SDL_RenderClear(renderer);
-
 		}
+		
 		App_Delay();
 
 	}
@@ -220,10 +222,42 @@ void App_State_Game() {
 
 void App_State_JoinGame() {
 
+
+	while (app_state == STATE_JOINGAME) {
+		SDL_PollEvent(&event_handler);
+		HandleObjectsEvent();
+		RenderObjects();
+		if (CreateClient("6969") == 0) {
+			app_state = STATE_GAME;
+			char msg[17] = "Joined to server";
+			SendMsg(msg, 17);
+		}
+
+	}
+	CleanRenderer();
+
 }
 
 void App_State_CreateGame() {
 
+	CreateServer("6969");
+
+	while (app_state == STATE_CREATEGAME) {
+		SDL_PollEvent(&event_handler);
+		HandleObjectsEvent();
+		RenderObjects();
+		if (AcceptClient() == true) {
+			app_state = STATE_GAME;
+		}
+
+	}
+
+	char buffer[DEFAULT_BUFLEN];
+	memset(buffer, 0, DEFAULT_BUFLEN);
+	while (ReceiveMsg(buffer, DEFAULT_BUFLEN) == 0) {}
+	printf("message from client: %s", buffer);
+
+	CleanRenderer();
 }
 
 void App_Event_Exit() {

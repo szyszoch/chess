@@ -1,15 +1,14 @@
 #pragma once
+
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <stdbool.h>
+
 #include "log.h"
 #include "object.h"
 #include "board.h"
-
-#define WINDOW_TITLE "Chess"
-#define WINDOW_WIDTH 900
-#define WINDOW_HEIGHT 600
+#include "network.h"
 
 #define STATE_QUIT 0
 #define STATE_MENU 1

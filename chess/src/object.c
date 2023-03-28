@@ -227,14 +227,14 @@ void RenderObject(unsigned int id) {
 		for (int x = 0; x < 8; x++) {
 			for (int y = 0; y < 8; y++) {
 
-				if (object[id].chess.board.piece[x][y].team == TEAM_NONE || object[id].chess.board.piece[x][y].state == CHESS_NONE)
+				if (object[id].chess.board.piece[x][y].team == TEAM_NONE || object[id].chess.board.piece[x][y].chess_type == CHESS_NONE)
 					continue;
 
 				int tex_id = 0;
 
 				switch (object[id].chess.board.piece[x][y].team) {
 				case TEAM_WHITE: {
-					switch (object[id].chess.board.piece[x][y].state) {
+					switch (object[id].chess.board.piece[x][y].chess_type) {
 					case CHESS_BISHOP: {tex_id = TEXTURE_WHITE_BISHOP; break; }
 					case CHESS_KING: {tex_id = TEXTURE_WHITE_KING; break; }
 					case CHESS_KNIGHT: {tex_id = TEXTURE_WHITE_KNIGHT; break; }
@@ -245,7 +245,7 @@ void RenderObject(unsigned int id) {
 					break;
 				}
 				case TEAM_BLACK: {
-					switch (object[id].chess.board.piece[x][y].state) {
+					switch (object[id].chess.board.piece[x][y].chess_type) {
 					case CHESS_BISHOP: {tex_id = TEXTURE_BLACK_BISHOP; break; }
 					case CHESS_KING: {tex_id = TEXTURE_BLACK_KING; break; }
 					case CHESS_KNIGHT: {tex_id = TEXTURE_BLACK_KNIGHT; break; }
@@ -257,20 +257,49 @@ void RenderObject(unsigned int id) {
 				}
 				}
 
-				if (x == object[id].chess.board.select_x && y == object[id].chess.board.select_y) {
-					int mx, my;
-					SDL_GetMouseState(&mx, &my);
-
-					SetObjectPositionAndDimensions(object[id].chess.texture[tex_id], mx - chess_width / 2, my - chess_height / 2, chess_width, chess_height);
-					RenderObject(object[id].chess.texture[tex_id]);
-				}
-					
-				else {
+				if (x != object[id].chess.board.select_x || y != object[id].chess.board.select_y) {
 					SetObjectPositionAndDimensions(object[id].chess.texture[tex_id], x * chess_width, y * chess_height, chess_width, chess_height);
 					RenderObject(object[id].chess.texture[tex_id]);
 				}
 
 			}
+		}
+
+		if (object[id].chess.board.select_x != -1 && object[id].chess.board.select_y != -1) {
+			int mx, my;
+			SDL_GetMouseState(&mx, &my);
+
+			int tex_id = 0;
+			int x = object[id].chess.board.select_x;
+			int y = object[id].chess.board.select_y;
+
+			switch (object[id].chess.board.piece[x][y].team) {
+			case TEAM_WHITE: {
+				switch (object[id].chess.board.piece[x][y].chess_type) {
+				case CHESS_BISHOP: {tex_id = TEXTURE_WHITE_BISHOP; break; }
+				case CHESS_KING: {tex_id = TEXTURE_WHITE_KING; break; }
+				case CHESS_KNIGHT: {tex_id = TEXTURE_WHITE_KNIGHT; break; }
+				case CHESS_PAWN: {tex_id = TEXTURE_WHITE_PAWN; break; }
+				case CHESS_QUEEN: {tex_id = TEXTURE_WHITE_QUEEN; break; }
+				case CHESS_ROOK: {tex_id = TEXTURE_WHITE_ROOK; break; }
+				}
+				break;
+			}
+			case TEAM_BLACK: {
+				switch (object[id].chess.board.piece[x][y].chess_type) {
+				case CHESS_BISHOP: {tex_id = TEXTURE_BLACK_BISHOP; break; }
+				case CHESS_KING: {tex_id = TEXTURE_BLACK_KING; break; }
+				case CHESS_KNIGHT: {tex_id = TEXTURE_BLACK_KNIGHT; break; }
+				case CHESS_PAWN: {tex_id = TEXTURE_BLACK_PAWN; break; }
+				case CHESS_QUEEN: {tex_id = TEXTURE_BLACK_QUEEN; break; }
+				case CHESS_ROOK: {tex_id = TEXTURE_BLACK_ROOK; break; }
+				}
+				break;
+			}
+			}
+
+			SetObjectPositionAndDimensions(object[id].chess.texture[tex_id], mx - chess_width / 2, my - chess_height / 2, chess_width, chess_height);
+			RenderObject(object[id].chess.texture[tex_id]);
 		}
 		break;
 	}
@@ -326,8 +355,8 @@ void SetObjectPosition(unsigned int id, int x, int y) {
 		object[id].dst.y = y;
 		object[object[id].message_box.texture].dst.x = x;
 		object[object[id].message_box.texture].dst.y = y;
-		object[object[id].message_box.button].dst.x = object[id].dst.w/2 - object[id].dst.w/3;
-		object[object[id].message_box.button].dst.y = object[id].dst.h / 2;
+		object[object[id].message_box.button].dst.x = x + object[id].dst.w / 2 - object[id].dst.w / 4;
+		object[object[id].message_box.button].dst.y = y + object[id].dst.h / 2;
 	}
 
 	else {
@@ -581,6 +610,10 @@ void HandleObjectEvent(unsigned int id) {
 		break;
 	}
 	case OBJECT_MESSAGEBOX: {
+		if (object[id].hover && event_handler.button.button == SDL_BUTTON_LEFT && event_handler.type == SDL_MOUSEMOTION) {
+			SetObjectPosition(id,x-object[id].dst.w/2,y - object[id].dst.h / 4);
+		}
+
 		HandleObjectEvent(object[id].message_box.texture);
 		HandleObjectEvent(object[id].message_box.button);
 		if (object[object[id].message_box.button].click == true) {
@@ -589,6 +622,10 @@ void HandleObjectEvent(unsigned int id) {
 		break;
 	}
 	case OBJECT_CHESS: {
+		if (object[id].chess.board.gameover == true) {
+			return;
+		}
+
 		if (event_handler.button.button == SDL_BUTTON_LEFT) {
 
 			if (object[id].hover == false) {
@@ -651,20 +688,6 @@ void HandleObjectEvent(unsigned int id) {
 
 void HandleObjectsEvent() {
 
-	// MessageBox has the highest priority
-
-	for (unsigned int i = 0; i < objectn; i++) {
-		
-		if (object[i].type == OBJECT_MESSAGEBOX) {
-			HandleObjectEvent(i);
-			if (object[i].hover)
-				return;
-		}
-		
-	}
-
-	// Then others
-
 	for (unsigned int i = 0; i < objectn; i++) {
 
 		HandleObjectEvent(i);
@@ -680,8 +703,9 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 
 	{ // texture
 		Uint32 white = 0xFFFFFFFF;
+		Uint32 black = 0x222222AA;
 
-		SDL_Surface* background = SDL_CreateRGBSurface(0, pos.w, pos.h, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+		SDL_Surface* background = SDL_CreateRGBSurface(0, pos.w-6, pos.h-6, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
 
 		if (background == NULL) {
 			LOG_ERROR(SDL_GetError());
@@ -689,7 +713,22 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 			return INVALID_OBJECT;
 		}
 
+		SDL_Surface* border = SDL_CreateRGBSurface(0, pos.w, pos.h, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+
+		if (border == NULL) {
+			LOG_ERROR(SDL_GetError());
+			SDL_FreeSurface(background);
+			error++;
+			return INVALID_OBJECT;
+		}
+
 		SDL_FillRect(background, NULL, white);
+		SDL_FillRect(border, NULL, black);
+
+		SDL_Rect background_pos = {3, 3, pos.w, pos.h};
+		SDL_BlitSurface(background, NULL, border, &background_pos);
+		SDL_FreeSurface(background);
+		background = border;
 
 		TTF_Font* font = TTF_OpenFont(text_form->font_path, text_form->size);
 
@@ -709,7 +748,7 @@ unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_
 			return INVALID_OBJECT;
 		}
 
-		SDL_Rect text_pos = {pos.w/2 - text->w/2, 0, text->w, text->h};
+		SDL_Rect text_pos = {pos.w/2 - text->w/2, 10, text->w, text->h};
 		
 		SDL_BlitSurface(text, NULL, background, &text_pos);
 		SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, background);

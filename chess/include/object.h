@@ -13,7 +13,11 @@
 
 #define INVALID_OBJECT 999999
 
-
+// how many sub-object create object
+#define G_TEXTURE 1
+#define G_BUTTON 1
+#define G_MESSAGEBOX 2
+#define G_CHESS 13
 
 typedef void (*void_func_ptr)();
 
@@ -26,10 +30,6 @@ typedef enum ButtonState {
 	BUTTONSTATE_NORMAL,
 	BUTTONSTATE_HOVER
 } ButtonState;
-
-
-
-// Forms
 
 typedef struct Button_F {
 
@@ -47,8 +47,6 @@ typedef struct Text_F {
 	SDL_Color color;
 	const char* font_path;
 } Text_F;
-
-
 
 extern SDL_Renderer* renderer;
 extern SDL_Window* window;
@@ -85,5 +83,4 @@ void SetButtonEvent(unsigned int id, void_func_ptr function);
 unsigned int CreateMessageBox(const char* title, SDL_Rect pos, Button_F* button_form, Text_F* text_form);
 
 unsigned int CreateChess(SDL_Rect pos);
-
 Board* GetChessBoard(unsigned int id);
