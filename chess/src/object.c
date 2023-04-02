@@ -610,10 +610,6 @@ void HandleObjectEvent(unsigned int id) {
 		break;
 	}
 	case OBJECT_MESSAGEBOX: {
-		if (object[id].hover && event_handler.button.button == SDL_BUTTON_LEFT && event_handler.type == SDL_MOUSEMOTION) {
-			SetObjectPosition(id,x-object[id].dst.w/2,y - object[id].dst.h / 4);
-		}
-
 		HandleObjectEvent(object[id].message_box.texture);
 		HandleObjectEvent(object[id].message_box.button);
 		if (object[object[id].message_box.button].click == true) {

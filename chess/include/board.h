@@ -48,9 +48,10 @@ typedef struct Board {
 	int select_x;
 	int select_y;
 	Move last_move;
+	bool danger_zone[TEAMS_COUNT][8][8];
+	int pawn_at_end_x;
+	int pawn_at_end_y;
 } Board;
-
-typedef bool bool88[8][8];
 
 void Board_Restart(Board* board);
 void Board_Copy(Board* src, Board* dst);
@@ -63,8 +64,7 @@ bool Board_IsMoveBlocked(Board* board,Move move);
 
 void Board_ChangeTurn(Board* board);
 
-bool Board_IsKingInDanger(Board* board, ChessTeam team);
-bool Board_KingCannotMove(Board* board, ChessTeam team);
-bool Board_CanProtectKing(Board* board, Move move, ChessTeam team);
-void Board_GetKingDangerZone(Board* board, ChessTeam team, bool88 king_danger_zone);
+void Board_FindKing(Board* board, ChessTeam team, int* x, int* y);
 bool Board_GameOver(Board* board, ChessTeam team);
+void Board_UpdateDangerZone(Board* board);
+void Board_ChangePawn(Board* board, ChessType chess);

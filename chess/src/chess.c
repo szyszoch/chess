@@ -126,7 +126,7 @@ void App_State_Menu() {
 
 }
 
-void App_State_Game() {
+void App_State_LocalGame() {
 
 	// Init variables
 	unsigned int button = 0;										// button object
@@ -157,13 +157,12 @@ void App_State_Game() {
 		return;
 	}
 
-	if (Board_IsKingInDanger(board, board->turn) && Board_KingCannotMove(board, board->turn)) {
-		board->gameover = true;
+	if (Board_GameOver(board, board->turn) == true) {
 		const char* winner = (board->turn == TEAM_WHITE) ? "black win" : "white win";
 		CreateMessageBox(winner, (SDL_Rect) { 200, 200, 250, 200 }, & button_form, & text_form);
 	}
 
-	while (app_state == STATE_GAME) {
+	while (app_state == STATE_LOCALGAME) {
 
 		{ // event handling
 			SDL_PollEvent(&event_handler);
@@ -179,27 +178,28 @@ void App_State_Game() {
 			
 			HandleObjectsEvent();
 
-			if (board->gameover == false) { 
+			if (board->pawn_at_end_x != -1 && board->pawn_at_end_y != -1) {
+				// Change pawn to other chess
+				LOG_INFO("Time to change");
+				Board_ChangePawn(board, CHESS_QUEEN);
+			}
+
+			else if (board->gameover == false) { 
 				// Handle Board
 
 				if (board->last_move.src_x != -1) {
-					
-					
+
 					if (Board_CanMove(board, board->last_move)) {
-
-						if (Board_IsKingInDanger(board, board->turn) == false || board->piece[board->last_move.src_x][board->last_move.src_y].chess_type == CHESS_KING || Board_CanProtectKing(board,board->last_move,board->turn)) {
-							Board_Move(board, board->last_move);
-							Board_ChangeTurn(board);
-						}
-
+						Board_Move(board, board->last_move);
+						Board_ChangeTurn(board);
 					}
 
 					if (Board_GameOver(board,board->turn) == true) {
-						board->gameover = true;
 						const char* winner = (board->turn == TEAM_WHITE) ? "black win" : "white win";
 						CreateMessageBox(winner, (SDL_Rect) { 200, 200, 250, 200 }, & button_form, & text_form);
 					}
 
+					board->last_move = (Move){ -1,-1,-1,-1 };
 				}
 				
 			}
@@ -228,7 +228,7 @@ void App_State_JoinGame() {
 		HandleObjectsEvent();
 		RenderObjects();
 		if (CreateClient("6969") == 0) {
-			app_state = STATE_GAME;
+			app_state = STATE_LOCALGAME;
 			char msg[17] = "Joined to server";
 			SendMsg(msg, 17);
 		}
@@ -247,7 +247,7 @@ void App_State_CreateGame() {
 		HandleObjectsEvent();
 		RenderObjects();
 		if (AcceptClient() == true) {
-			app_state = STATE_GAME;
+			app_state = STATE_LOCALGAME;
 		}
 
 	}
@@ -269,7 +269,7 @@ void App_Event_GoToMenu() {
 }
 
 void App_Event_GoToLocalGame() {
-	app_state = STATE_GAME;
+	app_state = STATE_LOCALGAME;
 }
 
 void App_Event_GoToJoinGame() {
