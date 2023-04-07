@@ -4,6 +4,9 @@
 
 #define DEFAULT_BUFLEN 512
 
+#define HOST_CLIENT 0
+#define HOST_SERVER 1
+
 #ifdef _WIN32
 
 #include <winsock2.h>
@@ -21,11 +24,13 @@
 
 #endif
 
+int GetHostType();
+
 int CreateClient(const char* server_port);
 
 int CreateServer(const char* server_port);
 bool AcceptClient();
 
 void CloseConnection();
-int SendMsg(char* message, int messageSize);
-int ReceiveMsg(char* buffer, int bufSize);
+bool send_message(char* msg, int msg_len);
+bool receive_message(char* buff, int buff_len);

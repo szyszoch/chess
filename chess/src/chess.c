@@ -1,264 +1,146 @@
 #include "chess.h"
 
-Uint32 window_flags;
-Button_F button_form;
-Text_F text_form;
-
 int app_state = STATE_MENU;
 
-void App_Init() {
+void menu() 
+{
+	SDL_Rect bp1 = { 0,150,420,50 };	
+	SDL_Rect bp2 = { 0,225,420,50 };
+	SDL_Rect bp3 = { 0,300,420,50 };
+	SDL_Rect bp4 = { 0,375,420,50 };
 
-	static bool init = false;
+	center_x_to(&bp1, WINDOW_RECT);
+	center_x_to(&bp2, WINDOW_RECT);
+	center_x_to(&bp3, WINDOW_RECT);
+	center_x_to(&bp4, WINDOW_RECT);
 
-	if (init == true) {
-		LOG_WARN("Trying to initialize program again");
-		return;
-	}
+	reserve_object_memory(4);
 
-	init = true;
-	Log_Init();
-
-	LOG_INFO("Initializing");
-
-	if (InitRenderer() < 0) {
-		return;
-	}
-
-	app_state = STATE_MENU;
-	window_flags = SDL_GetWindowFlags(window);
-
-	button_form.font_size = 32;
-	button_form.font_path = "rubik/static/Rubik-Regular.ttf";
-	button_form.text_color = (SDL_Color){ 240,240,240,255 };
-	button_form.background_color = (SDL_Color){ 40,40,40,255 };
-	button_form.background_color_hover = (SDL_Color){ 70,70,70,255 };
-
-	text_form.color = (SDL_Color){ 0,0,0,255 };
-	text_form.font_path = "rubik/static/Rubik-Regular.ttf";
-	text_form.size = 32;
-
-	SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
-
-}
-
-void App_Destroy() {
-
-	static bool quit = false;
-
-	if (quit == true)
-		return;
-
-	quit = true;
-	LOG_INFO("Closing");
-
-	DestroyRenderer();
-	Log_Quit();
-
-}
-
-void App_Delay() {
-	SDL_Delay(1000 / 60);
-}
-
-
-void App_State_Menu() {
-
-	// Init variables
-	SDL_Rect bp1 = { WINDOW_WIDTH / 2 - 420 / 2,150,420,50 };	// button position 1
-	SDL_Rect bp2 = { WINDOW_WIDTH / 2 - 420 / 2,225,420,50 };	// button position 2
-	SDL_Rect bp3 = { WINDOW_WIDTH / 2 - 420 / 2,300,420,50 };	// button position 3
-	SDL_Rect bp4 = { WINDOW_WIDTH / 2 - 420 / 2,375,420,50 };	// button position 4
-
-	ReserveObjectMemory(4);
-
-	// Init objects
-	{
-		unsigned int object;
-
-		object = CreateButton("Local Game", bp1, &button_form, BUTTONEVENT_FUNC);
-		SetButtonEvent(object, App_Event_GoToLocalGame);
-
-		object = CreateButton("Join Game", bp2, &button_form, BUTTONEVENT_FUNC);
-		SetButtonEvent(object, App_Event_GoToJoinGame);
-
-		object = CreateButton("Create Game", bp3, &button_form, BUTTONEVENT_FUNC);
-		SetButtonEvent(object, App_Event_GoToCreateGame);
-
-		object = CreateButton("Exit", bp4, &button_form, BUTTONEVENT_FUNC);
-		SetButtonEvent(object, App_Event_Exit);
-	}
-
-	// Error handling
-		
-	if (ErrorCount() > 0) {
-		CleanRenderer();
-		app_state = STATE_QUIT;
-		return;
-	}
+	create_button("Local Game", bp1, App_Event_GoToLocalGame);
+	create_button("Join Game",	bp2, App_Event_GoToJoinGame);
+	create_button("Create Game",bp3, App_Event_GoToCreateGame);
+	create_button("Exit",		bp4, App_Event_Exit);
 
 	while (app_state == STATE_MENU) {
-	
-		{ // event handling
-			SDL_PollEvent(&event_handler);
-			const Uint8* keys = SDL_GetKeyboardState(NULL);
-
-			if (keys[SDL_SCANCODE_ESCAPE]) {
-				app_state = STATE_QUIT;
-			}
-
-			if (event_handler.type == SDL_QUIT) {
-				app_state = STATE_QUIT;
-			}
-			
-			HandleObjectsEvent();
-		}
-
-		{ // render handling
-			RenderObjects();
-			SDL_RenderPresent(renderer);
-			SDL_RenderClear(renderer);
-		}
-		App_Delay();
-
+		handle_objects();
+		
+		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
+			app_state = STATE_QUIT;
+		
+		render_objects();
+		delay();
 	}
 
-	CleanRenderer();
-
+	destroy_objects();
 }
 
-void App_State_LocalGame() {
-
-	// Init variables
-	unsigned int button = 0;										// button object
-	unsigned int chess = 0;											// chess object
-	Board* board = NULL;											// virtual board
-	SDL_Rect board_pos = { 0,0,600,600 };							// board position
-	SDL_Rect bp1 = { WINDOW_WIDTH-200,WINDOW_HEIGHT-100,150,50 };	// button position
+void local_game() 
+{																
+	SDL_Rect board_pos = { 0,0,600,600 };						
+	SDL_Rect bp1 = { WINDOW_WIDTH-200,WINDOW_HEIGHT-100,150,50 };
 	
-	// Init objects
-	ReserveObjectMemory(G_BUTTON + G_CHESS);											
+	reserve_object_memory(2);
 
-	button = CreateButton("Menu", bp1, &button_form, BUTTONEVENT_FUNC);
-	SetButtonEvent(button, App_Event_GoToMenu);
-
-	chess = CreateChess(board_pos);
-	board = GetChessBoard(chess);
-
-	// Error handling
-	if (board == NULL) {
-		CleanRenderer();
-		app_state = STATE_QUIT;
-		return;
-	}
-
-	if (ErrorCount() > 0) {
-		CleanRenderer();
-		app_state = STATE_QUIT;
-		return;
-	}
-
-	if (Board_GameOver(board, board->turn) == true) {
-		const char* winner = (board->turn == TEAM_WHITE) ? "black win" : "white win";
-		CreateMessageBox(winner, (SDL_Rect) { 200, 200, 250, 200 }, & button_form, & text_form);
-	}
+	create_button("Menu", bp1, App_Event_GoToMenu);
+	unsigned int chess = create_chess(board_pos);
 
 	while (app_state == STATE_LOCALGAME) {
+		handle_objects();
 
-		{ // event handling
-			SDL_PollEvent(&event_handler);
-			const Uint8* keys = SDL_GetKeyboardState(NULL);
+		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
+			app_state = STATE_QUIT;
 
-			if (keys[SDL_SCANCODE_ESCAPE]) {
-				app_state = STATE_MENU;
-			}
-
-			if (event_handler.type == SDL_QUIT) {
-				app_state = STATE_QUIT;
-			}
-			
-			HandleObjectsEvent();
-
-			if (board->pawn_at_end_x != -1 && board->pawn_at_end_y != -1) {
-				// Change pawn to other chess
-				LOG_INFO("Time to change");
-				Board_ChangePawn(board, CHESS_QUEEN);
-			}
-
-			else if (board->gameover == false) { 
-				// Handle Board
-
-				if (board->last_move.src_x != -1) {
-
-					if (Board_CanMove(board, board->last_move)) {
-						Board_Move(board, board->last_move);
-						Board_ChangeTurn(board);
-					}
-
-					if (Board_GameOver(board,board->turn) == true) {
-						const char* winner = (board->turn == TEAM_WHITE) ? "black win" : "white win";
-						CreateMessageBox(winner, (SDL_Rect) { 200, 200, 250, 200 }, & button_form, & text_form);
-					}
-
-					board->last_move = (Move){ -1,-1,-1,-1 };
-				}
-				
-			}
-
-		}
-
-		{ // render handling
-			RenderObjects();
-			SDL_RenderPresent(renderer);
-			SDL_RenderClear(renderer);
-		}
-		
-		App_Delay();
-
+		render_objects();
+		delay();
 	}
 
-	CleanRenderer();
-
+	destroy_objects();
 }
 
-void App_State_JoinGame() {
+void network_game()
+{
+	SDL_Rect board_pos = { 0,0,600,600 };
+	SDL_Rect bp1 = { WINDOW_WIDTH - 200,WINDOW_HEIGHT - 100,150,50 };
+	int myturn = (GetHostType() == HOST_CLIENT) ? TEAM_BLACK : TEAM_WHITE;
 
+	reserve_object_memory(2);
+
+	create_button("Menu", bp1, App_Event_GoToMenu);
+
+	unsigned int chessid = create_chess(board_pos);
+	Chess* chess = get_object(chessid)->chess;
+
+	while (app_state == STATE_NETWORKGAME) {
+
+		handle_objects();
+
+		Move move = c_get_last_move(chess);
+		if (move.src_x != -1) {
+			char msg[] = { move.src_x,move.src_y,move.dst_x,move.dst_y,'\0' };
+			send_message(msg, 5);
+			freeze_object(c_get_object(chess));
+		}
+
+		if (myturn != c_get_turn(chess)) {
+			char buff[DEFAULT_BUFLEN];
+			if (receive_message(buff, DEFAULT_BUFLEN)) {
+				Move move = { buff[0],buff[1],buff[2],buff[3] };
+				Board_Move(chess, move);
+				Board_ChangeTurn(chess);
+				unfreeze_object(c_get_object(chess));
+			}
+		}
+
+		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
+			app_state = STATE_QUIT;
+
+		render_objects();
+		delay();
+	}
+
+	destroy_objects();
+}
+
+void JoinGame() {
 
 	while (app_state == STATE_JOINGAME) {
-		SDL_PollEvent(&event_handler);
-		HandleObjectsEvent();
-		RenderObjects();
+		handle_objects();
+		render_objects();
 		if (CreateClient("6969") == 0) {
-			app_state = STATE_LOCALGAME;
+			app_state = STATE_NETWORKGAME;
 			char msg[17] = "Joined to server";
-			SendMsg(msg, 17);
+			send_message(msg, 17);
 		}
 
 	}
-	CleanRenderer();
+	destroy_objects();
 
 }
 
-void App_State_CreateGame() {
+void CreateGame() {
 
 	CreateServer("6969");
 
-	while (app_state == STATE_CREATEGAME) {
-		SDL_PollEvent(&event_handler);
-		HandleObjectsEvent();
-		RenderObjects();
-		if (AcceptClient() == true) {
-			app_state = STATE_LOCALGAME;
-		}
-
+	while (!AcceptClient()) {
+		handle_objects();
+		render_objects();
 	}
 
-	char buffer[DEFAULT_BUFLEN];
-	memset(buffer, 0, DEFAULT_BUFLEN);
-	while (ReceiveMsg(buffer, DEFAULT_BUFLEN) == 0) {}
-	printf("message from client: %s", buffer);
+	while (app_state == STATE_CREATEGAME) {
+		handle_objects();
+		render_objects();
+		
+		char buffer[DEFAULT_BUFLEN];
 
-	CleanRenderer();
+		if (receive_message(buffer, DEFAULT_BUFLEN)) {
+			printf("message from client: %s", buffer);
+			app_state = STATE_NETWORKGAME;
+		}
+	}
+
+	destroy_objects();
 }
+
 
 void App_Event_Exit() {
 	app_state = STATE_QUIT;

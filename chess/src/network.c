@@ -1,8 +1,5 @@
 #include "network.h"
 
-#define HOST_CLIENT 0
-#define HOST_SERVER 1
-
 typedef struct Client {
     SOCKET connect_socket;
 } Client;
@@ -193,30 +190,31 @@ bool AcceptClient() {
     return host.server.client_socket != INVALID_SOCKET;
 }
 
-int SendMsg(char* message, int messageSize) {
-    
-    if (host.type == HOST_CLIENT) {
-        if (host.client.connect_socket != INVALID_SOCKET)
-            return send(host.client.connect_socket, message, messageSize, 0);
-    }
-       
-    else {
-        if (host.server.client_socket != INVALID_SOCKET)
-            return send(host.server.client_socket, message, messageSize, 0);
-    }
-    
-    return 0;
+bool send_message(char* msg, int msg_len)
+{
+    int result;
+
+    if (host.type == HOST_CLIENT)
+        result = send(host.client.connect_socket, msg, msg_len, 0);  
+    else 
+        result = send(host.server.client_socket, msg, msg_len, 0);
+
+    return (result != SOCKET_ERROR);
 }
 
-int ReceiveMsg(char* buffer, int bufSize) {
-    if (host.type == HOST_CLIENT) {
-        if (host.client.connect_socket != INVALID_SOCKET)
-            return recv(host.client.connect_socket, buffer, bufSize, 0);
-    }
-    else {
-        if (host.server.client_socket != INVALID_SOCKET)
-            return recv(host.server.client_socket, buffer, bufSize, 0);
-    }
+bool receive_message(char* buff, int buff_len)
+{
+    int result;
 
-    return 0;
+    if (host.type == HOST_CLIENT)
+        result = recv(host.client.connect_socket, buff, buff_len, 0);
+    else
+        result = recv(host.server.client_socket, buff, buff_len, 0);
+    
+    return (result > 0);
+}
+
+
+int GetHostType() {
+    return host.type;
 }
