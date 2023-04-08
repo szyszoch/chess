@@ -1,12 +1,11 @@
 #pragma once
+
 #include <memory.h>
-#include "math.h"
-#include "renderer.h"
 
 #include "objects/texture.h"
 #include "objects/button.h"
 #include "objects/messagebox.h"
-#include "objects/board.h"
+#include "objects/chess.h"
 
 #define INVALID_OBJECT 999999
 

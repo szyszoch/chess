@@ -24,13 +24,13 @@
 
 #endif
 
-int GetHostType();
+int get_host_type();
 
-int CreateClient(const char* server_port);
+bool create_client(const char* server_port);
 
-int CreateServer(const char* server_port);
-bool AcceptClient();
+bool create_server(const char* server_port);
+bool accept_client();
 
-void CloseConnection();
+void close_connection();
 bool send_message(char* msg, int msg_len);
 bool receive_message(char* buff, int buff_len);

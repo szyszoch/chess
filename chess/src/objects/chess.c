@@ -1,4 +1,4 @@
-#include "objects/board.h"
+#include "objects/chess.h"
 
 const bool bishop_pattern[15][15] = {
 	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},

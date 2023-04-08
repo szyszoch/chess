@@ -20,7 +20,8 @@ typedef struct Host {
 
 Host host;
 
-int CreateClient(const char* server_port) {
+bool create_client(const char* server_port) 
+{
     host.type = HOST_CLIENT;
     host.client.connect_socket = INVALID_SOCKET;
     
@@ -30,10 +31,9 @@ int CreateClient(const char* server_port) {
     struct addrinfo hints;
 
     host.result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
     if (host.result != 0) {
-       LOG_ERROR("WSAStartup failed");
-        return -1;
+        LOG_ERROR("WSAStartup failed");
+        goto error_wsa;
     }
 
     ZeroMemory(&hints, sizeof(hints));
@@ -42,60 +42,53 @@ int CreateClient(const char* server_port) {
     hints.ai_protocol = IPPROTO_TCP;
 
     host.result = getaddrinfo("127.0.0.1", server_port, &hints, &result);
-
-    if (host.result != 0)
-    {
+    if (host.result != 0) {
         LOG_ERROR("getaddrinfo failed");
-        WSACleanup();
-        return -1;
+        goto error_addrinfo;
     }
 
-    for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
-        
-        host.client.connect_socket = socket(ptr->ai_family, ptr->ai_socktype,
-            ptr->ai_protocol);
-
+    for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {     
+        host.client.connect_socket = socket(ptr->ai_family, ptr->ai_socktype,ptr->ai_protocol);
         if (host.client.connect_socket == INVALID_SOCKET) {
             LOG_ERROR("socket failed");
-            WSACleanup();
-            return -1;
+            goto error_connect_socket;
         }
 
         host.result = connect(host.client.connect_socket, ptr->ai_addr, (int)ptr->ai_addrlen);
-
-        if (host.result == SOCKET_ERROR)
-        {
+        if (host.result == SOCKET_ERROR) {
             closesocket(host.client.connect_socket);
             host.client.connect_socket = INVALID_SOCKET;
-            LOG_ERROR("The server is down... did not connect");
+            LOG_ERROR("The server is down");
         }
     }
 
     freeaddrinfo(result);
 
-    if (host.client.connect_socket == INVALID_SOCKET)
-    {
-        LOG_ERROR("Unable to connect to server!");
-        WSACleanup();
-        return -1;
+    if (host.client.connect_socket == INVALID_SOCKET) {
+        LOG_ERROR("Unable to connect to server");
+        goto error_connect;
     }
 
     u_long argp = 1;
-
     host.result = ioctlsocket(host.client.connect_socket, FIONBIO, &argp);
-    if (host.result == SOCKET_ERROR)
-    {
-        //LOG_ERROR(WSAGetLastError());
-        closesocket(host.client.connect_socket);
-        WSACleanup();
-        return -1;
+    if (host.result == SOCKET_ERROR) {
+        goto error_socket;
     }
 
-    return host.result;
+    return true;
 
+error_socket:
+    closesocket(host.client.connect_socket);
+error_connect:
+error_connect_socket:
+error_addrinfo:
+    WSACleanup();
+error_wsa:
+    return false;
 }
 
-int CreateServer(const char* server_port) {
+bool create_server(const char* server_port) 
+{
     host.type = HOST_SERVER;
     host.server.listening_socket = INVALID_SOCKET;
     host.server.client_socket = INVALID_SOCKET;
@@ -107,7 +100,7 @@ int CreateServer(const char* server_port) {
     host.result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (host.result != 0) {
         LOG_ERROR("WSAStartup failed");
-        return -1;
+        goto error_wsa;
     }
 
     ZeroMemory(&hints, sizeof(hints));
@@ -117,59 +110,49 @@ int CreateServer(const char* server_port) {
     hints.ai_flags = AI_PASSIVE;
 
     host.result = getaddrinfo(NULL, server_port, &hints, &result);
-
     if (host.result != 0) {
         LOG_ERROR("getaddrinfo failed");
-        WSACleanup();
-        return -1;
+        goto error_addrinfo;
     }
 
     host.server.listening_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-
     if (host.server.listening_socket == INVALID_SOCKET) {
         LOG_ERROR("socket failed");
-        freeaddrinfo(result);
-        WSACleanup();
-        return -1;
+        goto error_listening_socket;
     }
 
     u_long argp = 1;
     host.result = ioctlsocket(host.server.listening_socket, FIONBIO, &argp);
-
     if (host.result == SOCKET_ERROR) {
-        //LOG_ERROR(WSAGetLastError());
-        closesocket(host.server.listening_socket);
-        WSACleanup();
-        return -1;
+        goto error_socket;
     }
 
     host.result = bind(host.server.listening_socket, result->ai_addr, (int)result->ai_addrlen);
-
     if (host.result == SOCKET_ERROR) {
-        //LOG_ERROR(WSAGetLastError());
-        freeaddrinfo(result);
-        closesocket(host.server.listening_socket);
-        WSACleanup();
-        return -1;
+        goto error_socket;
+    }
+
+    host.result = listen(host.server.listening_socket, SOMAXCONN);
+    if (host.result == SOCKET_ERROR) {
+        goto error_socket;
     }
 
     freeaddrinfo(result);
 
-    host.result = listen(host.server.listening_socket, SOMAXCONN);
+    return true;
 
-    if (host.result == SOCKET_ERROR) {
-        //LOG_ERROR(WSAGetLastError());
-        closesocket(host.server.listening_socket);
-        WSACleanup();
-        return -1;
-    }
-
-    return host.result;
-
+error_socket:
+    closesocket(host.server.listening_socket);
+error_listening_socket:
+    freeaddrinfo(result);
+error_addrinfo:
+    WSACleanup();
+error_wsa:
+    return false;
 }
 
-void CloseConnection() {
-
+void close_connection() 
+{
     if (host.type == HOST_CLIENT) {
         closesocket(host.client.connect_socket);
     }
@@ -182,10 +165,10 @@ void CloseConnection() {
 
     host.type = 0;
     host.result = 0;
-
 }
 
-bool AcceptClient() {
+bool accept_client() 
+{
     host.server.client_socket = accept(host.server.listening_socket, NULL, NULL);
     return host.server.client_socket != INVALID_SOCKET;
 }
@@ -215,6 +198,7 @@ bool receive_message(char* buff, int buff_len)
 }
 
 
-int GetHostType() {
+int get_host_type() 
+{
     return host.type;
 }

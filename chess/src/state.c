@@ -1,4 +1,4 @@
-#include "chess.h"
+#include "state.h"
 
 int app_state = STATE_MENU;
 
@@ -16,10 +16,10 @@ void menu()
 
 	reserve_object_memory(4);
 
-	create_button("Local Game", bp1, App_Event_GoToLocalGame);
-	create_button("Join Game",	bp2, App_Event_GoToJoinGame);
-	create_button("Create Game",bp3, App_Event_GoToCreateGame);
-	create_button("Exit",		bp4, App_Event_Exit);
+	create_button("Local Game", bp1, ev_goto_localgame);
+	create_button("Join Game",	bp2, ev_goto_joingame);
+	create_button("Create Game",bp3, ev_goto_creategame);
+	create_button("Exit",		bp4, ev_exit_program);
 
 	while (app_state == STATE_MENU) {
 		handle_objects();
@@ -41,7 +41,7 @@ void local_game()
 	
 	reserve_object_memory(2);
 
-	create_button("Menu", bp1, App_Event_GoToMenu);
+	create_button("Menu", bp1, ev_goto_menu);
 	unsigned int chess = create_chess(board_pos);
 
 	while (app_state == STATE_LOCALGAME) {
@@ -61,14 +61,17 @@ void network_game()
 {
 	SDL_Rect board_pos = { 0,0,600,600 };
 	SDL_Rect bp1 = { WINDOW_WIDTH - 200,WINDOW_HEIGHT - 100,150,50 };
-	int myturn = (GetHostType() == HOST_CLIENT) ? TEAM_BLACK : TEAM_WHITE;
+	int myturn = (get_host_type() == HOST_CLIENT) ? TEAM_BLACK : TEAM_WHITE;
 
 	reserve_object_memory(2);
 
-	create_button("Menu", bp1, App_Event_GoToMenu);
+	create_button("Menu", bp1, ev_goto_menu);
 
 	unsigned int chessid = create_chess(board_pos);
 	Chess* chess = get_object(chessid)->chess;
+
+	if (myturn != c_get_turn(chess))
+		freeze_object(c_get_object(chess));
 
 	while (app_state == STATE_NETWORKGAME) {
 
@@ -101,63 +104,54 @@ void network_game()
 	destroy_objects();
 }
 
-void JoinGame() {
-
+void join_game() 
+{
 	while (app_state == STATE_JOINGAME) {
 		handle_objects();
 		render_objects();
-		if (CreateClient("6969") == 0) {
+		if (create_client("6969"))
 			app_state = STATE_NETWORKGAME;
-			char msg[17] = "Joined to server";
-			send_message(msg, 17);
-		}
-
-	}
-	destroy_objects();
-
-}
-
-void CreateGame() {
-
-	CreateServer("6969");
-
-	while (!AcceptClient()) {
-		handle_objects();
-		render_objects();
-	}
-
-	while (app_state == STATE_CREATEGAME) {
-		handle_objects();
-		render_objects();
-		
-		char buffer[DEFAULT_BUFLEN];
-
-		if (receive_message(buffer, DEFAULT_BUFLEN)) {
-			printf("message from client: %s", buffer);
-			app_state = STATE_NETWORKGAME;
-		}
 	}
 
 	destroy_objects();
 }
 
+void create_game() 
+{
+	create_server("6969");
 
-void App_Event_Exit() {
+	while (!accept_client()) {
+		handle_objects();
+		render_objects();
+	}
+
+	app_state = STATE_NETWORKGAME;
+
+	destroy_objects();
+}
+
+
+void ev_exit_program() 
+{
 	app_state = STATE_QUIT;
 }
 
-void App_Event_GoToMenu() {
+void ev_goto_menu() 
+{
 	app_state = STATE_MENU;
 }
 
-void App_Event_GoToLocalGame() {
+void ev_goto_localgame() 
+{
 	app_state = STATE_LOCALGAME;
 }
 
-void App_Event_GoToJoinGame() {
+void ev_goto_joingame() 
+{
 	app_state = STATE_JOINGAME;
 }
 
-void App_Event_GoToCreateGame() {
+void ev_goto_creategame() 
+{
 	app_state = STATE_CREATEGAME;
 }

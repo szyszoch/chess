@@ -1,5 +1,4 @@
-#include "chess.h"
-#include "objects/texture.h"
+#include "state.h"
 
 int main(int argc, char* args[]) 
 {
@@ -19,8 +18,8 @@ int main(int argc, char* args[])
 		case STATE_MENU:		{menu();		break; };
 		case STATE_NETWORKGAME: {network_game();break; };
 		case STATE_LOCALGAME:	{local_game();	break; };
-		case STATE_JOINGAME:	{JoinGame()	;	break; };
-		case STATE_CREATEGAME:	{CreateGame();	break; };
+		case STATE_JOINGAME:	{join_game()	;	break; };
+		case STATE_CREATEGAME:	{create_game();	break; };
 		}
 
 	}
