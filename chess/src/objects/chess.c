@@ -205,7 +205,7 @@ Chess* c_create()
 		return NULL;
 	}
 
-	b_newgame(chess);
+	c_newgame(chess);
 	
 	chess->turn = TEAM_WHITE;
 	chess->winner = TEAM_NONE;
@@ -376,13 +376,52 @@ Move c_get_last_move(Chess* chess)
 	return chess->last_move;
 }
 
+bool c_gameover(Chess* chess) 
+{
+	for (int srcx = 0; srcx < 8; srcx++) {
+		for (int srcy = 0; srcy < 8; srcy++) {
+			for (int dstx = 0; dstx < 8; dstx++) {
+				for (int dsty = 0; dsty < 8; dsty++) {
+					if (chess->piece[srcx][srcy].team != chess->turn) {
+						continue;
+					}
+					if (chess->piece[srcx][srcy].chess_type == CHESS_NONE) {
+						continue;
+					}
+					if (Board_CanMove(chess,(Move){srcx,srcy,dstx,dsty}) == true) {
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	int king_pos_x;
+	int king_pos_y;
+	Board_FindKing(chess, chess->turn, &king_pos_x, &king_pos_y);
+	if (king_pos_x == -1 || king_pos_y == -1) {}
+	else {
+		if (chess->danger_zone[chess->turn][king_pos_x][king_pos_y] == true) {
+			LOG_INFO("Szach mat");
+		}
+		else {
+			LOG_INFO("Can't move");
+		}
+	}
+
+	chess->gameover = true;
+	chess->winner = (chess->turn == TEAM_WHITE) ? TEAM_BLACK : TEAM_WHITE;
+
+	return true;
+}
+
 
 
 void Board_ChangeTurn(Chess* board) {
 	board->turn = (board->turn == TEAM_WHITE) ? TEAM_BLACK : TEAM_WHITE;
 }
 
-void b_newgame(Chess* chess) 
+void c_newgame(Chess* chess) 
 {
 	chess->piece[0][0].chess_type = CHESS_ROOK;		chess->piece[0][0].team = TEAM_BLACK;
 	chess->piece[1][0].chess_type = CHESS_KNIGHT;	chess->piece[1][0].team = TEAM_BLACK;
@@ -746,44 +785,6 @@ bool Board_IsMoveBlocked(Chess* board, Move move) {
 	return false;
 }
 
-bool Board_GameOver(Chess* board, ChessTeam team) {
-
-	for (int srcx = 0; srcx < 8; srcx++) {
-		for (int srcy = 0; srcy < 8; srcy++) {
-			for (int dstx = 0; dstx < 8; dstx++) {
-				for (int dsty = 0; dsty < 8; dsty++) {
-					if (board->piece[srcx][srcy].team != team) {
-						continue;
-					}
-					if (board->piece[srcx][srcy].chess_type == CHESS_NONE) {
-						continue;
-					}
-					if (Board_CanMove(board,(Move){srcx,srcy,dstx,dsty}) == true) {
-						return false;
-					}
-				}
-			}
-		}
-	}
-
-	int king_pos_x;
-	int king_pos_y;
-	Board_FindKing(board, board->turn, &king_pos_x, &king_pos_y);
-	if (king_pos_x == -1 || king_pos_y == -1) {}
-	else {
-		if (board->danger_zone[team][king_pos_x][king_pos_y] == true) {
-			LOG_INFO("Szach mat");
-		}
-		else {
-			LOG_INFO("Can't move");
-		}
-	}
-
-	board->gameover = true;
-	board->winner = (board->turn == TEAM_WHITE) ? TEAM_BLACK : TEAM_WHITE;
-
-	return true;
-}
 
 void Board_UpdateDangerZone(Chess* board) {
 

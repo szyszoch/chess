@@ -38,17 +38,26 @@ void local_game()
 {																
 	SDL_Rect board_pos = { 0,0,600,600 };						
 	SDL_Rect bp1 = { WINDOW_WIDTH-200,WINDOW_HEIGHT-100,150,50 };
-	
+	SDL_Rect mb = { 0,0,200,150 };
+	center_x_to(&mb, WINDOW_RECT);
+	center_y_to(&mb, WINDOW_RECT);
+
 	reserve_object_memory(2);
 
 	create_button("Menu", bp1, ev_goto_menu);
-	unsigned int chess = create_chess(board_pos);
+	unsigned int chessid = create_chess(board_pos);
+	Chess* chess = get_object(chessid)->chess;
 
 	while (app_state == STATE_LOCALGAME) {
 		handle_objects();
 
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
 			app_state = STATE_QUIT;
+
+		if (c_gameover(chess)) {
+			const char* winner = (c_get_turn(chess) == TEAM_WHITE) ? "black win" : "winner win";
+			create_messagebox(winner,mb);
+		}
 
 		render_objects();
 		delay();
@@ -61,6 +70,11 @@ void network_game()
 {
 	SDL_Rect board_pos = { 0,0,600,600 };
 	SDL_Rect bp1 = { WINDOW_WIDTH - 200,WINDOW_HEIGHT - 100,150,50 };
+	
+	SDL_Rect mb = { 0,0,200,150 };
+	center_x_to(&mb, WINDOW_RECT);
+	center_y_to(&mb, WINDOW_RECT);
+	
 	int myturn = (get_host_type() == HOST_CLIENT) ? TEAM_BLACK : TEAM_WHITE;
 
 	reserve_object_memory(2);
@@ -92,6 +106,11 @@ void network_game()
 				Board_ChangeTurn(chess);
 				unfreeze_object(c_get_object(chess));
 			}
+		}
+
+		if (c_gameover(chess)) {
+			const char* winner = (c_get_turn(chess) == TEAM_WHITE) ? "black win" : "winner win";
+			create_messagebox(winner, mb);
 		}
 
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())

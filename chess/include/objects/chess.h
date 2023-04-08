@@ -50,8 +50,9 @@ TextureID c_get_texture_id(ChessType type, ChessTeam team);
 Object* c_get_object(Chess* chess);
 ChessTeam c_get_turn(Chess* chess);
 Move c_get_last_move(Chess* chess);
+void c_newgame(Chess* board);
+bool c_gameover(Chess* chess);
 
-void b_newgame(Chess* board);
 void Board_Copy(Chess* src, Chess* dst);
 void Board_TestGameOver(Chess* board);
 
@@ -63,6 +64,5 @@ bool Board_IsMoveBlocked(Chess* board,Move move);
 void Board_ChangeTurn(Chess* board);
 
 void Board_FindKing(Chess* board, ChessTeam team, int* x, int* y);
-bool Board_GameOver(Chess* board, ChessTeam team);
 void Board_UpdateDangerZone(Chess* board);
 void Board_ChangePawn(Chess* board, ChessType chess);
