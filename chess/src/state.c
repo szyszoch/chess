@@ -2,6 +2,26 @@
 
 int app_state = STATE_MENU;
 
+bool init() 
+{
+	if (!init_window()) {
+		return false;
+	}
+
+	if (!load_textures()) {
+		return false;
+	}
+
+	return true;
+
+}
+
+void quit()
+{
+	destroy_textures();
+	destroy_window();
+}
+
 void menu() 
 {
 	SDL_Rect bp1 = { 0,150,420,50 };	
@@ -9,145 +29,160 @@ void menu()
 	SDL_Rect bp3 = { 0,300,420,50 };
 	SDL_Rect bp4 = { 0,375,420,50 };
 
-	center_x_to(&bp1, WINDOW_RECT);
-	center_x_to(&bp2, WINDOW_RECT);
-	center_x_to(&bp3, WINDOW_RECT);
-	center_x_to(&bp4, WINDOW_RECT);
+	center_rect_to_rect_x(&bp1, &WINDOW_RECT);
+	center_rect_to_rect_x(&bp2, &WINDOW_RECT);
+	center_rect_to_rect_x(&bp3, &WINDOW_RECT);
+	center_rect_to_rect_x(&bp4, &WINDOW_RECT);
 
-	reserve_object_memory(4);
-
-	create_button("Local Game", bp1, ev_goto_localgame);
-	create_button("Join Game",	bp2, ev_goto_joingame);
-	create_button("Create Game",bp3, ev_goto_creategame);
-	create_button("Exit",		bp4, ev_exit_program);
+	Button* b1 = create_button("Local Game",	bp1, ev_goto_localgame);
+	Button* b2 = create_button("Join Game",		bp2, ev_goto_joingame);
+	Button* b3 = create_button("Create Game",	bp3, ev_goto_creategame);
+	Button* b4 = create_button("Exit",			bp4, ev_exit_program);
 
 	while (app_state == STATE_MENU) {
-		handle_objects();
 		
+		update();
+
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
 			app_state = STATE_QUIT;
 		
-		render_objects();
+		handle_button(b1);
+		handle_button(b2);
+		handle_button(b3);
+		handle_button(b4);
+		
+		render_button(b1);
+		render_button(b2);
+		render_button(b3);
+		render_button(b4);
+
+		display();
 		delay();
 	}
 
-	destroy_objects();
+	destroy_button(b1);
+	destroy_button(b2);
+	destroy_button(b3);
+	destroy_button(b4);
 }
 
 void local_game() 
-{																
-	SDL_Rect board_pos = { 0,0,600,600 };						
-	SDL_Rect bp1 = { WINDOW_WIDTH-200,WINDOW_HEIGHT-100,150,50 };
-	SDL_Rect mb = { 0,0,200,150 };
-	center_x_to(&mb, WINDOW_RECT);
-	center_y_to(&mb, WINDOW_RECT);
+{	
+	SDL_Rect board_pos = { 0,0,600,600 };		
+	SDL_Rect left_panel = { board_pos.w, 0, WINDOW_WIDTH - board_pos.w, WINDOW_HEIGHT };
+	SDL_Rect bp1 = { 0,500,250,50 };
+	SDL_Rect tp1 = { 625,50,250,100 };
 
-	reserve_object_memory(2);
+	center_rect_to_rect_x(&bp1, &left_panel);
 
-	create_button("Menu", bp1, ev_goto_menu);
-	unsigned int chessid = create_chess(board_pos);
-	Chess* chess = get_object(chessid)->chess;
+	Button* b1 = create_button("Menu", bp1, ev_goto_menu);
+	Chess* c1 = chess_create(&board_pos, GAMEMODE_LOCAL);
+	
+	Text* t1 = text_create("Turn : white",tp1);
+	Text* t2 = text_create("Turn : black",tp1);
 
 	while (app_state == STATE_LOCALGAME) {
-		handle_objects();
+
+		update();
 
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
 			app_state = STATE_QUIT;
 
-		if (c_gameover(chess)) {
-			const char* winner = (c_get_turn(chess) == TEAM_WHITE) ? "black win" : "winner win";
-			create_messagebox(winner,mb);
+		handle_button(b1);
+
+		if (!chess_is_gameover(c1)) {
+			chess_handle(c1);
 		}
 
-		render_objects();
+		if (chess_get_turn(c1) == TEAM_WHITE)
+			text_render(t1);
+		else 
+			text_render(t2);
+
+		render_button(b1);
+		chess_render(c1);
+
+		display();
 		delay();
 	}
 
-	destroy_objects();
+	text_destroy(t1);
+	text_destroy(t2);
+	destroy_button(b1);
+	chess_destroy(c1);
 }
 
 void network_game()
 {
 	SDL_Rect board_pos = { 0,0,600,600 };
-	SDL_Rect bp1 = { WINDOW_WIDTH - 200,WINDOW_HEIGHT - 100,150,50 };
-	
-	SDL_Rect mb = { 0,0,200,150 };
-	center_x_to(&mb, WINDOW_RECT);
-	center_y_to(&mb, WINDOW_RECT);
-	
-	int myturn = (get_host_type() == HOST_CLIENT) ? TEAM_BLACK : TEAM_WHITE;
+	SDL_Rect left_panel = { board_pos.w, 0, WINDOW_WIDTH - board_pos.w, WINDOW_HEIGHT };
+	SDL_Rect bp1 = { 0,500,250,50 };
+	SDL_Rect tp1 = { 625,50,250,100 };
 
-	reserve_object_memory(2);
+	center_rect_to_rect_x(&bp1, &left_panel);
 
-	create_button("Menu", bp1, ev_goto_menu);
+	Button* b1 = create_button("Menu", bp1, ev_goto_menu);
+	Chess* c1 = chess_create(&board_pos, GAMEMODE_NETWORK);
 
-	unsigned int chessid = create_chess(board_pos);
-	Chess* chess = get_object(chessid)->chess;
-
-	if (myturn != c_get_turn(chess))
-		freeze_object(c_get_object(chess));
+	Text* t1 = text_create("Turn : white", tp1);
+	Text* t2 = text_create("Turn : black", tp1);
 
 	while (app_state == STATE_NETWORKGAME) {
 
-		handle_objects();
-
-		Move move = c_get_last_move(chess);
-		if (move.src_x != -1) {
-			char msg[] = { move.src_x,move.src_y,move.dst_x,move.dst_y,'\0' };
-			send_message(msg, 5);
-			freeze_object(c_get_object(chess));
-		}
-
-		if (myturn != c_get_turn(chess)) {
-			char buff[DEFAULT_BUFLEN];
-			if (receive_message(buff, DEFAULT_BUFLEN)) {
-				Move move = { buff[0],buff[1],buff[2],buff[3] };
-				Board_Move(chess, move);
-				Board_ChangeTurn(chess);
-				unfreeze_object(c_get_object(chess));
-			}
-		}
-
-		if (c_gameover(chess)) {
-			const char* winner = (c_get_turn(chess) == TEAM_WHITE) ? "black win" : "winner win";
-			create_messagebox(winner, mb);
-		}
+		update();
 
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
-			app_state = STATE_QUIT;
+			app_state = STATE_MENU;
 
-		render_objects();
+		handle_button(b1);
+
+		if (!chess_is_gameover(c1)) {
+			chess_handle(c1);
+		}
+		
+		if (chess_get_turn(c1) == TEAM_WHITE)
+			text_render(t1);
+		else
+			text_render(t2);
+
+		render_button(b1);
+		chess_render(c1);
+
+		display();
 		delay();
 	}
 
-	destroy_objects();
+	text_destroy(t1);
+	text_destroy(t2);
+	destroy_button(b1);
+	chess_destroy(c1);
 }
 
 void join_game() 
 {
 	while (app_state == STATE_JOINGAME) {
-		handle_objects();
-		render_objects();
+		update();
 		if (create_client("6969"))
 			app_state = STATE_NETWORKGAME;
+		display();
+		delay();
 	}
-
-	destroy_objects();
 }
 
-void create_game() 
+void create_game()
 {
 	create_server("6969");
 
 	while (!accept_client()) {
-		handle_objects();
-		render_objects();
+		update();
+		display();
+		delay();
 	}
 
 	app_state = STATE_NETWORKGAME;
 
-	destroy_objects();
 }
+
 
 
 void ev_exit_program() 
@@ -164,6 +199,12 @@ void ev_goto_localgame()
 {
 	app_state = STATE_LOCALGAME;
 }
+
+void ev_goto_networkgame()
+{
+	app_state = STATE_NETWORKGAME;
+}
+
 
 void ev_goto_joingame() 
 {

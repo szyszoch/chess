@@ -34,3 +34,4 @@ bool accept_client();
 void close_connection();
 bool send_message(char* msg, int msg_len);
 bool receive_message(char* buff, int buff_len);
+bool is_connected();

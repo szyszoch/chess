@@ -32,7 +32,7 @@ bool create_client(const char* server_port)
 
     host.result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (host.result != 0) {
-        LOG_ERROR("WSAStartup failed");
+        LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM,"WSAStartup failed");
         goto error_wsa;
     }
 
@@ -43,14 +43,14 @@ bool create_client(const char* server_port)
 
     host.result = getaddrinfo("127.0.0.1", server_port, &hints, &result);
     if (host.result != 0) {
-        LOG_ERROR("getaddrinfo failed");
+        LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "getaddrinfo failed");
         goto error_addrinfo;
     }
 
     for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {     
         host.client.connect_socket = socket(ptr->ai_family, ptr->ai_socktype,ptr->ai_protocol);
         if (host.client.connect_socket == INVALID_SOCKET) {
-            LOG_ERROR("socket failed");
+            LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "socket failed");
             goto error_connect_socket;
         }
 
@@ -58,14 +58,14 @@ bool create_client(const char* server_port)
         if (host.result == SOCKET_ERROR) {
             closesocket(host.client.connect_socket);
             host.client.connect_socket = INVALID_SOCKET;
-            LOG_ERROR("The server is down");
+            LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "The server is down");
         }
     }
 
     freeaddrinfo(result);
 
     if (host.client.connect_socket == INVALID_SOCKET) {
-        LOG_ERROR("Unable to connect to server");
+        LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "Unable to connect to server");
         goto error_connect;
     }
 
@@ -99,7 +99,7 @@ bool create_server(const char* server_port)
     
     host.result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (host.result != 0) {
-        LOG_ERROR("WSAStartup failed");
+        LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "WSAStartup failed");
         goto error_wsa;
     }
 
@@ -111,13 +111,13 @@ bool create_server(const char* server_port)
 
     host.result = getaddrinfo(NULL, server_port, &hints, &result);
     if (host.result != 0) {
-        LOG_ERROR("getaddrinfo failed");
+        LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "getaddrinfo failed");
         goto error_addrinfo;
     }
 
     host.server.listening_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (host.server.listening_socket == INVALID_SOCKET) {
-        LOG_ERROR("socket failed");
+        LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "socket failed");
         goto error_listening_socket;
     }
 
@@ -197,8 +197,17 @@ bool receive_message(char* buff, int buff_len)
     return (result > 0);
 }
 
-
 int get_host_type() 
 {
     return host.type;
+}
+
+bool is_connected()
+{
+    if (host.type == HOST_CLIENT) {
+        return !(host.client.connect_socket == INVALID_SOCKET);
+    }
+    else {
+        return !(host.server.client_socket == INVALID_SOCKET);
+    }
 }

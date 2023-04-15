@@ -3,83 +3,83 @@
 typedef struct Button {
 	void_func_ptr func;
 	SDL_Texture* texture[2];
-	Object o;
+	SDL_Rect pos;
 } Button;
 
-Button* b_create(const char* title, SDL_Rect pos, void_func_ptr func)
+Button* create_button(const char* title, SDL_Rect pos, void_func_ptr func)
 {
-	Button* new_button = malloc(sizeof(Button));
-	if (new_button == NULL) {
-		LOG_ERROR("Can't allocate memory");
+	Button* new_bn = malloc(sizeof(Button));
+	if (new_bn == NULL) {
+		LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM,"Can't allocate memory");
 		goto error_button;
 	}
 
-	SDL_Texture* normal_texture = create_rect(pos, BUTTON_BACKGROUND_COLOR);
-	if (normal_texture == NULL) {
-		LOG_ERROR("Can't create rect");
+	SDL_Texture* normal_tex = create_rect(pos, BUTTON_BACKGROUND_COLOR);
+	if (normal_tex == NULL) {
+		LOG_ERROR(SDL_LOG_CATEGORY_RENDER, "Can't create rect");
 		goto error_normal_texture;
 	}
 
-	SDL_Texture* hover_texture = create_rect(pos, BUTTON_HOVER_BACKGROUND_COLOR);
-	if (hover_texture == NULL) {
-		LOG_ERROR("Can't create rect");
+	SDL_Texture* hover_tex = create_rect(pos, BUTTON_HOVER_BACKGROUND_COLOR);
+	if (hover_tex == NULL) {
+		LOG_ERROR(SDL_LOG_CATEGORY_RENDER, "Can't create rect");
 		goto error_hover_texture;
 	}
 
-	SDL_Texture* text = create_text(title, BUTTON_TEXT_COLOR, pos.w);
+	SDL_Texture* text = create_text(title, BUTTON_TEXT_COLOR, 32, pos.w);
 	if (text == NULL) {
-		LOG_ERROR("Can't create text");
+		LOG_ERROR(SDL_LOG_CATEGORY_RENDER, "Can't create text");
 		goto error_text;
 	}
 
 	SDL_Rect text_pos = { 0,0,0,0 };
+	SDL_Rect r = { 0,0,pos.w,pos.h };
+
 	SDL_QueryTexture(text, NULL, NULL, &text_pos.w, &text_pos.h);
-	center_x_to(&text_pos, (SDL_Rect) { 0, 0, pos.w, pos.h });
-	center_y_to(&text_pos, (SDL_Rect) { 0, 0, pos.w, pos.h });
+	center_rect_to_rect(&text_pos, &r);
+	center_rect_to_rect(&text_pos, &r);
 
-	merge_textures(text, NULL, normal_texture, &text_pos);
-	merge_textures_r(text, NULL, hover_texture, &text_pos);
+	merge_textures(text, NULL, normal_tex, &text_pos);
+	merge_textures_r(text, NULL, hover_tex, &text_pos);
 	
-	new_button->texture[BUTTON_STATE_NORMAL] = normal_texture;
-	new_button->texture[BUTTON_STATE_HOVER] = hover_texture;
-	new_button->o.pos = pos;
-	new_button->func = func;
+	new_bn->texture[BUTTON_STATE_NORMAL] = normal_tex;
+	new_bn->texture[BUTTON_STATE_HOVER] = hover_tex;
+	new_bn->pos = pos;
+	new_bn->func = func;
 
-	return new_button;
+	return new_bn;
 
 error_text:
-	SDL_DestroyTexture(hover_texture);
+	SDL_DestroyTexture(hover_tex);
 error_hover_texture:
-	SDL_DestroyTexture(normal_texture);
+	SDL_DestroyTexture(normal_tex);
 error_normal_texture:
-	free(new_button);
+	free(new_bn);
 error_button:
 	return NULL;
 }
 
-void b_destroy(Button* button)
+void destroy_button(Button* bn)
 {
-	if (button == NULL)
+	if (bn == NULL)
 		return;
-	SDL_DestroyTexture(button->texture[BUTTON_STATE_NORMAL]);
-	SDL_DestroyTexture(button->texture[BUTTON_STATE_HOVER]);
-	free(button);
+	SDL_DestroyTexture(bn->texture[BUTTON_STATE_NORMAL]);
+	SDL_DestroyTexture(bn->texture[BUTTON_STATE_HOVER]);
+	free(bn);
 }
 
-void b_render(Button* button)
+void render_button(Button* bn)
 {
-	if (is_object_hover(&button->o))
-		SDL_RenderCopy(renderer, button->texture[BUTTON_STATE_HOVER], NULL, &button->o.pos);
+	if (hover_rect(&bn->pos))
+		render(bn->texture[BUTTON_STATE_HOVER], NULL, &bn->pos);
 	else 
-		SDL_RenderCopy(renderer, button->texture[BUTTON_STATE_NORMAL], NULL, &button->o.pos);
+		render(bn->texture[BUTTON_STATE_NORMAL], NULL, &bn->pos);
 }
 
-bool b_handle(Button* button)
+void handle_button(Button* bn)
 {
-	if (is_object_clicked(&button->o)) {
-		if (button->func != NULL) 
-			button->func();
-		return true;
+	if (clicked_rect(&bn->pos)) {
+		if (bn->func != NULL) 
+			bn->func();
 	}
-	return false;
 }
