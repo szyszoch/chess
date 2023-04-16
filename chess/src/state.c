@@ -211,6 +211,10 @@ void join_game()
 		display();
 		delay();
 	}
+
+	inputbox_destroy(inb1);
+	inputbox_destroy(inb2);
+	button_destroy(b1);
 }
 
 void create_game()
@@ -259,6 +263,9 @@ void create_game()
 		display();
 		delay();
 	}
+
+	inputbox_destroy(inb1);
+	button_destroy(b1);
 }
 
 
