@@ -3,6 +3,7 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <stdbool.h>
+#include "events.h"
 
 #include "log.h"
 
@@ -20,13 +21,20 @@ void display();
 void set_window_default_background_color();
 void delay();
 void render(SDL_Texture* tex, const SDL_Rect* src, const SDL_Rect* dst);
+int get_texture_width(SDL_Texture* tex);
+int get_texture_height(SDL_Texture* tex);
 SDL_Texture* load_texture(const char* path);
 SDL_Texture* create_empty_texture(SDL_Rect pos);
-SDL_Texture* create_border(SDL_Rect pos, SDL_Color color, int width);
 SDL_Texture* create_text(const char* title, SDL_Color clr, unsigned int size, unsigned int wrapping_len);
+SDL_Texture* create_border(SDL_Rect pos, SDL_Color color, int width);
 SDL_Texture* create_rect(SDL_Rect pos, SDL_Color color);
 void merge_textures(SDL_Texture* src, SDL_Rect* src_r, SDL_Texture* dst, SDL_Rect* dst_r);
 void merge_textures_r(SDL_Texture* src, SDL_Rect* src_r, SDL_Texture* dst, SDL_Rect* dst_r);
+void add_background(SDL_Texture* tex, SDL_Color color);
+void add_border(SDL_Texture* tex, SDL_Color color, int width);
+void add_text(SDL_Texture* tex, const char* title, SDL_Color clr, unsigned int size, unsigned int wrapping_len);
+void add_text_centered(SDL_Texture* tex, const char* title, SDL_Color clr, unsigned int size, unsigned int wrapping_len);
+void add_text_centered_y(SDL_Texture* tex, const char* title, SDL_Color clr, unsigned int size, unsigned int wrapping_len);
 
 typedef enum TextureID {
 	TEXTURE_BLACK_BISHOP,

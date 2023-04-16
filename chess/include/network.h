@@ -26,7 +26,7 @@
 
 int get_host_type();
 
-bool create_client(const char* server_port);
+bool create_client(const char* server_addr, const char* server_port);
 
 bool create_server(const char* server_port);
 bool accept_client();

@@ -83,6 +83,20 @@ void render(SDL_Texture* tex, const SDL_Rect* src, const SDL_Rect* dst)
 	SDL_RenderCopy(renderer, tex, src, dst);
 }
 
+int get_texture_width(SDL_Texture* tex)
+{
+	int width = 0;
+	SDL_QueryTexture(tex, NULL, NULL, &width, NULL);
+	return width;
+}
+
+int get_texture_height(SDL_Texture* tex)
+{
+	int height = 0;
+	SDL_QueryTexture(tex, NULL, NULL, NULL, &height);
+	return height;
+}
+
 SDL_Texture* load_texture(const char* path)
 {
 	SDL_Texture* tex = IMG_LoadTexture(renderer, path);
@@ -110,25 +124,8 @@ SDL_Texture* create_empty_texture(SDL_Rect pos)
 
 SDL_Texture* create_border(SDL_Rect pos, SDL_Color color, int width)
 {
-	SDL_Texture* tex = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, pos.w, pos.h);
-	SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
-
-	if (tex == NULL) {
-		LOG_ERROR(SDL_LOG_CATEGORY_RENDER,SDL_GetError());
-		return NULL;
-	}
-
-	SDL_SetRenderTarget(renderer, tex);
-	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-
-	for (int i = 0; i < width; i++) {
-		SDL_Rect rect = { 0 + i,0 + i,pos.w - i * 2,pos.h - i * 2 };
-		SDL_RenderDrawRect(renderer, &rect);
-	}
-
-	SDL_SetRenderTarget(renderer, NULL);
-	set_window_default_background_color();
-
+	SDL_Texture* tex = create_empty_texture(pos);
+	add_border(tex, color, width);
 	return tex;
 }
 
@@ -167,21 +164,9 @@ error:
 
 SDL_Texture* create_rect(SDL_Rect pos, SDL_Color color)
 {
-	SDL_Texture* textures = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, pos.w, pos.h);
-	SDL_SetTextureBlendMode(textures, SDL_BLENDMODE_BLEND);
-
-	if (textures == NULL) {
-		LOG_ERROR(SDL_LOG_CATEGORY_RENDER,SDL_GetError());
-		return NULL;
-	}
-
-	SDL_SetRenderTarget(renderer, textures);
-	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-	SDL_RenderFillRect(renderer, NULL);
-	SDL_SetRenderTarget(renderer, NULL);
-	set_window_default_background_color();
-
-	return textures;
+	SDL_Texture* tex = create_empty_texture(pos);	
+	add_background(tex, color);
+	return tex;
 }
 
 void merge_textures(SDL_Texture* src, SDL_Rect* src_r, SDL_Texture* dst, SDL_Rect* dst_r)
@@ -197,7 +182,73 @@ void merge_textures_r(SDL_Texture* src, SDL_Rect* src_r, SDL_Texture* dst, SDL_R
 	SDL_DestroyTexture(src);
 }
 
+void add_background(SDL_Texture* tex, SDL_Color color)
+{
+	SDL_SetRenderTarget(renderer, tex);
+	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+	SDL_RenderFillRect(renderer, NULL);
+	SDL_SetRenderTarget(renderer, NULL);
+	set_window_default_background_color();
+}
 
+void add_border(SDL_Texture* tex, SDL_Color color, int width)
+{
+	int w = get_texture_width(tex);
+	int h = get_texture_height(tex);
+
+	SDL_SetRenderTarget(renderer, tex);
+	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+
+	for (int i = 0; i < width; i++) {
+		SDL_Rect rect = { i, i, w - i * 2, h - i * 2 };
+		SDL_RenderDrawRect(renderer, &rect);
+	}
+
+	SDL_SetRenderTarget(renderer, NULL);
+	set_window_default_background_color();
+}
+
+void add_text(SDL_Texture* tex, const char* title, SDL_Color clr, unsigned int size, unsigned int wrapping_len)
+{
+	SDL_Texture* text = create_text(title, clr, size, wrapping_len);
+	int text_w = get_texture_width(text);
+	int text_h = get_texture_height(text);
+	SDL_Rect text_pos = { 0,0,text_w,text_h };
+
+	merge_textures_r(text, NULL, tex, &text_pos);
+}
+
+void add_text_centered(SDL_Texture* tex, const char* title, SDL_Color clr, unsigned int size, unsigned int wrapping_len)
+{
+	int tex_w = get_texture_width(tex);
+	int tex_h = get_texture_height(tex);
+
+	SDL_Texture* text = create_text(title, clr, size, wrapping_len);
+	int text_w = get_texture_width(text);
+	int text_h = get_texture_height(text);
+
+	SDL_Rect text_pos = { 0,0,text_w,text_h };
+	SDL_Rect tex_pos =  { 0,0,tex_w ,tex_h  };
+
+	center_rect_to_rect(&text_pos, &tex_pos);
+	merge_textures_r(text, NULL, tex, &text_pos);
+}
+
+void add_text_centered_y(SDL_Texture* tex, const char* title, SDL_Color clr, unsigned int size, unsigned int wrapping_len)
+{
+	int tex_w = get_texture_width(tex);
+	int tex_h = get_texture_height(tex);
+
+	SDL_Texture* text = create_text(title, clr, size, wrapping_len);
+	int text_w = get_texture_width(text);
+	int text_h = get_texture_height(text);
+
+	SDL_Rect text_pos = { 0,0,text_w,text_h };
+	SDL_Rect tex_pos = { 0,0,tex_w ,tex_h };
+
+	center_rect_to_rect_y(&text_pos, &tex_pos);
+	merge_textures_r(text, NULL, tex, &text_pos);
+}
 
 bool load_textures()
 {

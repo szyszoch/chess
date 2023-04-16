@@ -12,12 +12,15 @@ bool init()
 		return false;
 	}
 
+	SDL_StartTextInput();
+
 	return true;
 
 }
 
 void quit()
 {
+	SDL_StopTextInput();
 	destroy_textures();
 	destroy_window();
 }
@@ -34,10 +37,10 @@ void menu()
 	center_rect_to_rect_x(&bp3, &WINDOW_RECT);
 	center_rect_to_rect_x(&bp4, &WINDOW_RECT);
 
-	Button* b1 = create_button("Local Game",	bp1, ev_goto_localgame);
-	Button* b2 = create_button("Join Game",		bp2, ev_goto_joingame);
-	Button* b3 = create_button("Create Game",	bp3, ev_goto_creategame);
-	Button* b4 = create_button("Exit",			bp4, ev_exit_program);
+	Button* b1 = button_create("Local Game",	bp1, ev_goto_localgame);
+	Button* b2 = button_create("Join Game",		bp2, ev_goto_joingame);
+	Button* b3 = button_create("Create Game",	bp3, ev_goto_creategame);
+	Button* b4 = button_create("Exit",			bp4, ev_exit_program);
 
 	while (app_state == STATE_MENU) {
 		
@@ -46,24 +49,24 @@ void menu()
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
 			app_state = STATE_QUIT;
 		
-		handle_button(b1);
-		handle_button(b2);
-		handle_button(b3);
-		handle_button(b4);
+		button_handle(b1);
+		button_handle(b2);
+		button_handle(b3);
+		button_handle(b4);
 		
-		render_button(b1);
-		render_button(b2);
-		render_button(b3);
-		render_button(b4);
+		button_render(b1);
+		button_render(b2);
+		button_render(b3);
+		button_render(b4);
 
 		display();
 		delay();
 	}
 
-	destroy_button(b1);
-	destroy_button(b2);
-	destroy_button(b3);
-	destroy_button(b4);
+	button_destroy(b1);
+	button_destroy(b2);
+	button_destroy(b3);
+	button_destroy(b4);
 }
 
 void local_game() 
@@ -75,7 +78,7 @@ void local_game()
 
 	center_rect_to_rect_x(&bp1, &left_panel);
 
-	Button* b1 = create_button("Menu", bp1, ev_goto_menu);
+	Button* b1 = button_create("Menu", bp1, ev_goto_menu);
 	Chess* c1 = chess_create(&board_pos, GAMEMODE_LOCAL);
 	
 	Text* t1 = text_create("Turn : white",tp1);
@@ -88,7 +91,7 @@ void local_game()
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
 			app_state = STATE_QUIT;
 
-		handle_button(b1);
+		button_handle(b1);
 
 		if (!chess_is_gameover(c1)) {
 			chess_handle(c1);
@@ -99,7 +102,7 @@ void local_game()
 		else 
 			text_render(t2);
 
-		render_button(b1);
+		button_render(b1);
 		chess_render(c1);
 
 		display();
@@ -108,7 +111,7 @@ void local_game()
 
 	text_destroy(t1);
 	text_destroy(t2);
-	destroy_button(b1);
+	button_destroy(b1);
 	chess_destroy(c1);
 }
 
@@ -121,7 +124,7 @@ void network_game()
 
 	center_rect_to_rect_x(&bp1, &left_panel);
 
-	Button* b1 = create_button("Menu", bp1, ev_goto_menu);
+	Button* b1 = button_create("Menu", bp1, ev_goto_menu);
 	Chess* c1 = chess_create(&board_pos, GAMEMODE_NETWORK);
 
 	Text* t1 = text_create("Turn : white", tp1);
@@ -134,7 +137,7 @@ void network_game()
 		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
 			app_state = STATE_MENU;
 
-		handle_button(b1);
+		button_handle(b1);
 
 		if (!chess_is_gameover(c1)) {
 			chess_handle(c1);
@@ -145,7 +148,7 @@ void network_game()
 		else
 			text_render(t2);
 
-		render_button(b1);
+		button_render(b1);
 		chess_render(c1);
 
 		display();
@@ -154,16 +157,57 @@ void network_game()
 
 	text_destroy(t1);
 	text_destroy(t2);
-	destroy_button(b1);
+	button_destroy(b1);
 	chess_destroy(c1);
 }
 
 void join_game() 
 {
+	SDL_Rect bp1 = { 0,500,250,50 };
+	SDL_Rect inbp1 = { 0,150,250,50 };
+	SDL_Rect inbp2 = { 0,210,210,50 };
+
+	center_rect_to_rect_x(&inbp1, &WINDOW_RECT);
+	center_rect_to_rect_x(&inbp2, &WINDOW_RECT);
+	center_rect_to_rect_x(&bp1, &WINDOW_RECT);
+	
+	InputBox* inb1 = inputbox_create(inbp1, 15);
+	InputBox* inb2 = inputbox_create(inbp2, 8);
+	Button* b1 = button_create("Enter", bp1, NULL);
+
 	while (app_state == STATE_JOINGAME) {
+
 		update();
-		if (create_client("6969"))
-			app_state = STATE_NETWORKGAME;
+		inputbox_handle(inb1);
+		inputbox_handle(inb2);
+		button_handle(b1);
+
+		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
+			app_state = STATE_MENU;
+
+		if (button_clicked(b1)) {
+
+			const char* addr = inputbox_get_input(inb1);
+			const char* port = inputbox_get_input(inb2);
+
+			while (!create_client(addr,port)) {
+				update();
+				if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit()) {
+					app_state = STATE_MENU;
+					break;
+				}
+			}
+
+			if (is_connected()) 
+				app_state = STATE_NETWORKGAME;
+			else
+				app_state = STATE_MENU;
+		}
+
+		inputbox_render(inb1);
+		inputbox_render(inb2);
+		button_render(b1);
+
 		display();
 		delay();
 	}

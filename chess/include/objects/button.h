@@ -12,7 +12,8 @@
 typedef void (*void_func_ptr)();
 typedef struct Button Button;
 
-Button* create_button(const char* title, SDL_Rect pos, void_func_ptr func);
-void destroy_button(Button* bn);
-void render_button(Button* bn);
-void handle_button(Button* bn);
+Button* button_create(const char* title, SDL_Rect pos, void_func_ptr func);
+void button_destroy(Button* bn);
+void button_render(Button* bn);
+void button_handle(Button* bn);
+bool button_clicked(Button* bn);

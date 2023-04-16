@@ -6,6 +6,7 @@
 #include "objects/button.h"
 #include "objects/chess.h"
 #include "objects/text.h"
+#include "objects/inputbox.h"
 
 enum States {
 	STATE_QUIT,

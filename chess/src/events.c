@@ -31,6 +31,11 @@ bool clicked_rect(const SDL_Rect* rect)
 	return (hover_rect(rect) && events.button.clicks);
 }
 
+bool clicked()
+{
+	return events.button.clicks;
+}
+
 void center_to_cursor(SDL_Rect* rect)
 {
 	rect->x = cursor_pos.x - rect->w;
@@ -89,4 +94,14 @@ bool pressed_left_button()
 bool released_left_button()
 {
 	return (events.button.button == SDL_BUTTON_LEFT && events.type == SDL_MOUSEBUTTONUP);
+}
+
+char get_text_input()
+{
+	return events.text.text[0];
+}
+
+bool is_input_event()
+{
+	return (events.type == SDL_TEXTINPUT);
 }

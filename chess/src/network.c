@@ -20,7 +20,7 @@ typedef struct Host {
 
 Host host;
 
-bool create_client(const char* server_port) 
+bool create_client(const char* server_addr, const char* server_port)
 {
     host.type = HOST_CLIENT;
     host.client.connect_socket = INVALID_SOCKET;
@@ -41,7 +41,7 @@ bool create_client(const char* server_port)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    host.result = getaddrinfo("127.0.0.1", server_port, &hints, &result);
+    host.result = getaddrinfo(server_addr, server_port, &hints, &result);
     if (host.result != 0) {
         LOG_ERROR(SDL_LOG_CATEGORY_SYSTEM, "getaddrinfo failed");
         goto error_addrinfo;

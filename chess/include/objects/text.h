@@ -12,8 +12,5 @@
 typedef struct Text Text;
 
 Text* text_create(const char* title, SDL_Rect pos);
-void text_update(Text* text);
-void text_rename(Text* text, const char* title);
-
 void text_destroy(Text* text);
 void text_render(Text* text);
