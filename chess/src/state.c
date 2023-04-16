@@ -215,16 +215,50 @@ void join_game()
 
 void create_game()
 {
-	create_server("6969");
+	SDL_Rect bp1 = { 0,500,250,50 };
+	SDL_Rect inbp1 = { 0,150,250,50 };
 
-	while (!accept_client()) {
+	center_rect_to_rect_x(&inbp1, &WINDOW_RECT);
+	center_rect_to_rect_x(&bp1, &WINDOW_RECT);
+
+	InputBox* inb1 = inputbox_create(inbp1, 8);
+	Button* b1 = button_create("Enter", bp1, NULL);
+
+	while (app_state == STATE_CREATEGAME) {
+
 		update();
+		inputbox_handle(inb1);
+		button_handle(b1);
+
+		if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit())
+			app_state = STATE_MENU;
+
+		if (button_clicked(b1)) {
+
+			const char* port = inputbox_get_input(inb1);
+
+			create_server(port);
+
+			while (!accept_client()) {
+				update();
+				if (pressed_key(SDL_SCANCODE_ESCAPE) || pressed_quit()) {
+					app_state = STATE_MENU;
+					break;
+				}
+			}
+
+			if (is_connected())
+				app_state = STATE_NETWORKGAME;
+			else
+				app_state = STATE_MENU;
+		}
+
+		inputbox_render(inb1);
+		button_render(b1);
+
 		display();
 		delay();
 	}
-
-	app_state = STATE_NETWORKGAME;
-
 }
 
 
